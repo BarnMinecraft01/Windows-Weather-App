@@ -39,7 +39,8 @@ namespace WeatherApp.UI
             Background = AppTheme.BackgroundBrush;
 
             _searchBox = Widgets.Input(320);
-            _searchBox.Watermark = "Town, ZIP code, or latitude and longitude";
+            // Watermark was renamed PlaceholderText in Avalonia 12.
+            _searchBox.PlaceholderText = "Town, ZIP code, or latitude and longitude";
             _searchBox.KeyDown += (s, e) =>
             {
                 if (e.Key != Key.Enter) return;
