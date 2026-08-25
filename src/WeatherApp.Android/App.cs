@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using Avalonia;
+using Avalonia.Android;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
@@ -33,12 +35,20 @@ namespace WeatherApp.Droid
 
         public override void OnFrameworkInitializationCompleted()
         {
-            if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
-            {
-                AppSettings settings = AppSettings.Load();
-                ApplyEndpointOverrides();
-                ApplyUserAgent(settings);
+            AppSettings settings = AppSettings.Load();
+            ApplyEndpointOverrides();
+            ApplyUserAgent(settings);
 
+            // Avalonia 12 hands Android an IActivityApplicationLifetime with a
+            // factory rather than a single view, because the platform may create
+            // more than one activity and each needs its own view. The settings are
+            // loaded once and captured, so every activity reads the same places.
+            if (ApplicationLifetime is IActivityApplicationLifetime activityLifetime)
+            {
+                activityLifetime.MainViewFactory = () => new PhoneShell(settings);
+            }
+            else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
+            {
                 singleView.MainView = new PhoneShell(settings);
             }
 

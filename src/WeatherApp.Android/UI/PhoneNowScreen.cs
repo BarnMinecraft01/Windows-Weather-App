@@ -18,7 +18,7 @@ namespace WeatherApp.UI
     /// </summary>
     public sealed class PhoneNowScreen : PhoneScreen
     {
-        private const double Margin = 14;
+        private const double Gutter = 14;
         private const double HeaderHeight = 186;
         private const double ChartHeight = 196;
         private const double PrecipRowHeight = 34;
@@ -35,9 +35,9 @@ namespace WeatherApp.UI
             {
                 if (Snapshot == null) return H;
 
-                double height = Margin + HeaderHeight + Margin + ChartHeight + Margin;
-                height += PrecipCardHeight() + Margin;
-                height += DetailCardHeight() + Margin;
+                double height = Gutter + HeaderHeight + Gutter + ChartHeight + Gutter;
+                height += PrecipCardHeight() + Gutter;
+                height += DetailCardHeight() + Gutter;
                 return height;
             }
         }
@@ -50,21 +50,21 @@ namespace WeatherApp.UI
                 return;
             }
 
-            double inner = width - Margin * 2;
+            double inner = width - Gutter * 2;
             if (inner < 60) return;
 
-            double y = Margin;
+            double y = Gutter;
 
-            DrawHeader(context, new Rect(Margin, y, inner, HeaderHeight));
-            y += HeaderHeight + Margin;
+            DrawHeader(context, new Rect(Gutter, y, inner, HeaderHeight));
+            y += HeaderHeight + Gutter;
 
-            DrawHourly(context, new Rect(Margin, y, inner, ChartHeight));
-            y += ChartHeight + Margin;
+            DrawHourly(context, new Rect(Gutter, y, inner, ChartHeight));
+            y += ChartHeight + Gutter;
 
-            DrawPrecipitation(context, new Rect(Margin, y, inner, PrecipCardHeight()));
-            y += PrecipCardHeight() + Margin;
+            DrawPrecipitation(context, new Rect(Gutter, y, inner, PrecipCardHeight()));
+            y += PrecipCardHeight() + Gutter;
 
-            DrawDetails(context, new Rect(Margin, y, inner, DetailCardHeight()));
+            DrawDetails(context, new Rect(Gutter, y, inner, DetailCardHeight()));
         }
 
         private void DrawHeader(DrawingContext context, Rect bounds)

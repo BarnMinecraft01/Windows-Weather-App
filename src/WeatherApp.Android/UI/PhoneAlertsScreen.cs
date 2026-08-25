@@ -19,7 +19,7 @@ namespace WeatherApp.UI
     /// </summary>
     public sealed class PhoneAlertsScreen : PhoneScreen
     {
-        private const double Margin = 14;
+        private const double Gutter = 14;
         private const double RowHeight = 78;
         private const double BackRowHeight = 44;
 
@@ -40,8 +40,8 @@ namespace WeatherApp.UI
         {
             get
             {
-                if (_openIndex >= 0) return BackRowHeight + _detailHeight + Margin * 2;
-                return Margin * 2 + 34 + Math.Max(1, _alerts.Count) * RowHeight;
+                if (_openIndex >= 0) return BackRowHeight + _detailHeight + Gutter * 2;
+                return Gutter * 2 + 34 + Math.Max(1, _alerts.Count) * RowHeight;
             }
         }
 
@@ -50,7 +50,7 @@ namespace WeatherApp.UI
             if (_openIndex >= 0)
             {
                 // Anything in the back row returns to the list.
-                if (point.Y <= Margin + BackRowHeight)
+                if (point.Y <= Gutter + BackRowHeight)
                 {
                     _openIndex = -1;
                     ResetScroll();
@@ -59,7 +59,7 @@ namespace WeatherApp.UI
                 return;
             }
 
-            double y = Margin + 34;
+            double y = Gutter + 34;
             for (int i = 0; i < _alerts.Count; i++)
             {
                 if (point.Y >= y && point.Y < y + RowHeight)
@@ -75,7 +75,7 @@ namespace WeatherApp.UI
 
         protected override void DrawContent(DrawingContext context, double width)
         {
-            double inner = width - Margin * 2;
+            double inner = width - Gutter * 2;
             if (inner < 60) return;
 
             if (_openIndex >= 0 && _openIndex < _alerts.Count)
@@ -91,14 +91,14 @@ namespace WeatherApp.UI
                 AppTheme.DrawText(context,
                     "There are no active watches, warnings or advisories for this area.",
                     AppTheme.Regular, AppTheme.SizeBody, AppTheme.TextMuted,
-                    new Rect(Margin, Margin + 44, inner, 60));
+                    new Rect(Gutter, Gutter + 44, inner, 60));
                 return;
             }
 
-            double y = Margin + 34;
+            double y = Gutter + 34;
             for (int i = 0; i < _alerts.Count; i++)
             {
-                DrawRow(context, new Rect(Margin, y, inner, RowHeight - 8), _alerts[i]);
+                DrawRow(context, new Rect(Gutter, y, inner, RowHeight - 8), _alerts[i]);
                 y += RowHeight;
             }
         }
@@ -113,7 +113,7 @@ namespace WeatherApp.UI
             {
                 AppTheme.DrawLineText(context, "No active alerts for " + scope + ".", AppTheme.Bold,
                     AppTheme.SizeBody, AppTheme.Brush(AppTheme.OkColor),
-                    new Rect(Margin, Margin, inner, 26));
+                    new Rect(Gutter, Gutter, inner, 26));
                 return;
             }
 
@@ -132,7 +132,7 @@ namespace WeatherApp.UI
 
             AppTheme.DrawLineText(context, text.ToString(), AppTheme.Bold, AppTheme.SizeBody,
                 AppTheme.Brush(warnings > 0 ? AppTheme.DangerColor : AppTheme.WarningColor),
-                new Rect(Margin, Margin, inner, 26));
+                new Rect(Gutter, Gutter, inner, 26));
         }
 
         private static void DrawRow(DrawingContext context, Rect bounds, WeatherAlert alert)
@@ -170,15 +170,15 @@ namespace WeatherApp.UI
             WeatherAlert alert = _alerts[_openIndex];
             Color accent = AppTheme.AlertColor(alert.Severity, alert.IsWarning);
 
-            var back = new Rect(Margin, Margin, inner, BackRowHeight - 8);
+            var back = new Rect(Gutter, Gutter, inner, BackRowHeight - 8);
             AppTheme.DrawCard(context, back, AppTheme.SurfaceAltBrush);
             AppTheme.DrawLineText(context, "‹  All alerts", AppTheme.Bold, AppTheme.SizeBody,
                 AppTheme.Accent, back.Deflate(new Thickness(14, 0)));
 
-            double y = Margin + BackRowHeight;
+            double y = Gutter + BackRowHeight;
 
             AppTheme.DrawText(context, alert.Event ?? "Weather Alert", AppTheme.Bold,
-                AppTheme.SizeHeading, AppTheme.Brush(accent), new Rect(Margin, y, inner, 30));
+                AppTheme.SizeHeading, AppTheme.Brush(accent), new Rect(Gutter, y, inner, 30));
             y += 34;
 
             var meta = new List<string>();
@@ -190,13 +190,13 @@ namespace WeatherApp.UI
             }
 
             AppTheme.DrawText(context, string.Join("  ·  ", meta), AppTheme.Regular,
-                AppTheme.SizeSmall, AppTheme.TextMuted, new Rect(Margin, y, inner, 20));
+                AppTheme.SizeSmall, AppTheme.TextMuted, new Rect(Gutter, y, inner, 20));
             y += 24;
 
             if (!string.IsNullOrWhiteSpace(alert.AreaDescription))
             {
                 AppTheme.DrawText(context, alert.AreaDescription, AppTheme.Regular,
-                    AppTheme.SizeSmall, AppTheme.TextFaint, new Rect(Margin, y, inner, 44));
+                    AppTheme.SizeSmall, AppTheme.TextFaint, new Rect(Gutter, y, inner, 44));
                 y += 48;
             }
 
@@ -219,10 +219,10 @@ namespace WeatherApp.UI
             // Estimate the wrapped height so the screen knows how far it scrolls.
             // Measured rather than guessed, because warning text varies enormously.
             Size measured = AppTheme.MeasureWrapped(text, AppTheme.Regular, AppTheme.SizeBody, inner);
-            _detailHeight = y + measured.Height + Margin;
+            _detailHeight = y + measured.Height + Gutter;
 
             AppTheme.DrawText(context, text, AppTheme.Regular, AppTheme.SizeBody, AppTheme.Text,
-                new Rect(Margin, y, inner, measured.Height + 8));
+                new Rect(Gutter, y, inner, measured.Height + 8));
         }
 
         /// <summary>

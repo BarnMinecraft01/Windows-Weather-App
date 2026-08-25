@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-  <!-- The only permission the app needs. Everything it shows comes from public
-       weather services over HTTPS; there is no location permission because the
-       user picks their places explicitly rather than being geolocated. -->
+  <!-- The only permissions the app needs. Everything it shows comes from public
+       weather services over HTTPS, and there is deliberately no location
+       permission: the user picks their places explicitly rather than being
+       geolocated.
+
+       The <application> element is generated from the [Application] attribute on
+       AndroidApp, so declaring one here as well would only risk a merge conflict. -->
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-  <application android:label="Windows Weather"
-               android:icon="@drawable/icon"
-               android:supportsRtl="true" />
 </manifest>

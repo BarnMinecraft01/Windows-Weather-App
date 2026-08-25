@@ -18,7 +18,7 @@ namespace WeatherApp.UI
     /// </summary>
     public sealed class PhoneForecastScreen : PhoneScreen
     {
-        private const double Margin = 14;
+        private const double Gutter = 14;
         private const double RowHeight = 62;
         private const double ExpandedExtra = 188;
 
@@ -47,7 +47,7 @@ namespace WeatherApp.UI
                 int count = Days.Count;
                 if (count == 0) return H;
 
-                double height = Margin + count * RowHeight + Margin;
+                double height = Gutter + count * RowHeight + Gutter;
                 if (_expandedIndex >= 0) height += ExpandedExtra;
                 return height;
             }
@@ -58,7 +58,7 @@ namespace WeatherApp.UI
             List<ForecastDay> days = Days;
             if (days.Count == 0) return;
 
-            double y = Margin;
+            double y = Gutter;
             for (int i = 0; i < days.Count; i++)
             {
                 double rowHeight = RowHeight + (i == _expandedIndex ? ExpandedExtra : 0);
@@ -82,28 +82,28 @@ namespace WeatherApp.UI
                 return;
             }
 
-            double inner = width - Margin * 2;
+            double inner = width - Gutter * 2;
             if (inner < 60) return;
 
             double minimum, maximum;
             TemperatureRange(days, out minimum, out maximum);
 
-            double y = Margin;
+            double y = Gutter;
             for (int i = 0; i < days.Count; i++)
             {
                 bool expanded = i == _expandedIndex;
                 double rowHeight = RowHeight + (expanded ? ExpandedExtra : 0);
 
-                var bounds = new Rect(Margin, y, inner, rowHeight);
+                var bounds = new Rect(Gutter, y, inner, rowHeight);
                 AppTheme.DrawCard(context, bounds,
                     expanded ? AppTheme.SurfaceAltBrush : AppTheme.SurfaceBrush);
 
-                DrawRow(context, new Rect(Margin, y, inner, RowHeight), days[i], minimum, maximum, expanded);
+                DrawRow(context, new Rect(Gutter, y, inner, RowHeight), days[i], minimum, maximum, expanded);
 
                 if (expanded)
                 {
                     DrawExpanded(context,
-                        new Rect(Margin + 14, y + RowHeight - 6, inner - 28, ExpandedExtra - 8), days[i], i);
+                        new Rect(Gutter + 14, y + RowHeight - 6, inner - 28, ExpandedExtra - 8), days[i], i);
                 }
 
                 y += rowHeight;

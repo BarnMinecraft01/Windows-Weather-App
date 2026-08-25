@@ -6,17 +6,20 @@ using Avalonia.Android;
 namespace WeatherApp.Droid
 {
     /// <summary>
-    /// The single activity that hosts Avalonia.
+    /// The activity that hosts Avalonia.
     ///
-    /// ConfigurationChanges is deliberately broad: without it Android destroys and
-    /// recreates the activity on rotation or a theme change, which would throw away
-    /// the loaded snapshot and re-hit the weather services for no reason. Avalonia
-    /// handles the resize itself.
+    /// Non-generic: Avalonia 12 moved application initialisation out of the
+    /// activity and into an Android Application subclass (see AndroidApp), so
+    /// the activity no longer names the Avalonia app type.
+    ///
+    /// ConfigurationChanges is deliberately broad. Without it Android destroys and
+    /// recreates the activity on rotation or a theme change, which would throw
+    /// away the loaded snapshot and re-hit the weather services for no reason.
+    /// Avalonia handles the resize itself.
     /// </summary>
     [Activity(
         Label = "Windows Weather",
         Theme = "@style/AppTheme",
-        Icon = "@drawable/icon",
         MainLauncher = true,
         LaunchMode = LaunchMode.SingleTop,
         ConfigurationChanges = ConfigChanges.Orientation
@@ -25,11 +28,7 @@ namespace WeatherApp.Droid
                                | ConfigChanges.SmallestScreenSize
                                | ConfigChanges.UiMode
                                | ConfigChanges.Density)]
-    public class MainActivity : AvaloniaMainActivity<App>
+    public class MainActivity : AvaloniaMainActivity
     {
-        protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
-        {
-            return base.CustomizeAppBuilder(builder);
-        }
     }
 }

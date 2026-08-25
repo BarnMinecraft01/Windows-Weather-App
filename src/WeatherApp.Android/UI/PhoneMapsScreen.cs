@@ -25,7 +25,7 @@ namespace WeatherApp.UI
     /// </summary>
     public sealed class PhoneMapsScreen : WeatherPanel
     {
-        private const double Margin = 12;
+        private const double Gutter = 12;
         private const double ToggleHeight = 40;
         private const double StatusHeight = 20;
 
@@ -133,8 +133,8 @@ namespace WeatherApp.UI
 
         protected override void LayoutChildren()
         {
-            Place(_radarButton, Margin, Margin, 100, ToggleHeight - 10);
-            Place(_jetButton, Margin + 108, Margin, 120, ToggleHeight - 10);
+            Place(_radarButton, Gutter, Gutter, 100, ToggleHeight - 10);
+            Place(_jetButton, Gutter + 108, Gutter, 120, ToggleHeight - 10);
         }
 
         // ---- loading ---------------------------------------------------------
@@ -289,10 +289,10 @@ namespace WeatherApp.UI
         {
             AppTheme.DrawLineText(context, _status, AppTheme.Regular, AppTheme.SizeSmall,
                 _statusIsError ? AppTheme.Brush(AppTheme.WarningColor) : AppTheme.TextMuted,
-                new Rect(Margin, ToggleHeight + 2, Math.Max(10, W - Margin * 2), StatusHeight));
+                new Rect(Gutter, ToggleHeight + 2, Math.Max(10, W - Gutter * 2), StatusHeight));
 
             double top = ToggleHeight + StatusHeight + 6;
-            var host = new Rect(Margin, top, Math.Max(10, W - Margin * 2), Math.Max(10, H - top - Margin));
+            var host = new Rect(Gutter, top, Math.Max(10, W - Gutter * 2), Math.Max(10, H - top - Gutter));
             if (host.Width < 40 || host.Height < 40) return;
 
             AppTheme.DrawCard(context, host);
