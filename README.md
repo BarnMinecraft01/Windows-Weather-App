@@ -1,6 +1,6 @@
 # Windows Weather
 
-A desktop weather app for **Windows 7 SP1, 8, 8.1, 10 and 11** that shows the
+A desktop weather app for **Windows 7 SP1 → 11** and **macOS** that shows the
 things most weather apps stopped showing: the jet stream, animated radar you can
 pause, precipitation split by type, a ten-day forecast with the forecast office's
 own wording, and the full text of every active NWS alert.
@@ -36,9 +36,33 @@ and alerts can be scoped to just that point or to the whole region.
 
 ---
 
+## Repository layout
+
+The app is one shared core with two UI heads. No mainstream stack covers Windows
+7 *and* macOS from a single binary — .NET 5+ dropped Windows 7, and Avalonia 12
+dropped .NET Framework — so the platform-specific part is the UI and nothing else.
+
+```
+src/WeatherApp.Core/       Json, Net, Configuration, Models, Services, Platform
+src/WeatherApp.WinForms/   .NET Framework 4.6.2 + WinForms   → Windows 7–11
+src/WeatherApp.Mac/        .NET 10 + Avalonia 12             → macOS (and Linux)
+packaging/macos/           Info.plist and the .app build script
+```
+
+The core is **shared by source glob, not as a `netstandard2.0` assembly.** .NET
+Framework 4.6.2 is missing around 200 of the APIs `netstandard2.0` promises and
+needs binding redirects plus NuGet packages to bridge them, which would cost the
+Windows head its "builds from a bare checkout with nothing but MSBuild" property.
+
+Roughly 4,200 lines of core are shared verbatim; each head is its own UI. The
+two heads draw from identical layout arithmetic, so the same forecast renders
+the same way on both.
+
+---
+
 ## Installing
 
-### Requirements
+### Windows
 
 | Windows version | What you need |
 |---|---|
@@ -46,39 +70,95 @@ and alerts can be scoped to just that point or to the whole region.
 | **8.1**, **8** | Install [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48). |
 | **7 SP1** | Install [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48), and make sure TLS 1.2 is enabled — see [Windows 7 notes](#windows-7-notes). |
 
-### Running it
+Download `WindowsWeather.exe` and `WindowsWeather.exe.config` from the build
+artifacts, put both in a folder, and run it. No installer.
 
-Download `WindowsWeather.exe` (and `WindowsWeather.exe.config` alongside it) from
-the build artifacts, put both in a folder, and run it. There is no installer and
-nothing is written outside your user profile.
+### macOS
 
-Settings live in `%APPDATA%\WindowsWeatherApp\`.
+Requires **macOS 14 (Sonoma) or later** — that is
+[Microsoft's supported floor for .NET 10](https://learn.microsoft.com/dotnet/core/install/macos).
+The bundle declares a minimum of 13.0 so older systems can at least try; that is
+untested. Both Apple silicon and Intel are supported.
+
+The published `.app` is **self-contained** — it carries its own .NET runtime, so
+nothing needs installing first.
+
+Because the CI build is only *ad-hoc signed*, Gatekeeper will refuse it on a
+machine other than the one that built it. To run it anyway, either right-click
+the app and choose **Open**, or clear the quarantine flag:
+
+```bash
+xattr -dr com.apple.quarantine "Windows Weather.app"
+```
+
+> The app is named "Windows Weather" on macOS too, inherited from the Windows
+> original. Renaming it is a one-line change in `packaging/macos/Info.plist`.
+
+Settings live in `~/Library/Application Support/WindowsWeatherApp/` on macOS and
+`%APPDATA%\WindowsWeatherApp\` on Windows.
 
 ---
 
 ## Building from source
 
-The solution has **no NuGet packages**. A bare checkout builds with nothing but
-MSBuild, which is deliberate: package restore is usually the first thing to break
-on an old machine.
+### Windows head
+
+No NuGet packages. A bare checkout builds with nothing but MSBuild, which is
+deliberate: package restore is usually the first thing to break on an old machine.
 
 ```
 msbuild WindowsWeatherApp.sln /p:Configuration=Release
 ```
 
-Or open `WindowsWeatherApp.sln` in Visual Studio 2019 or later (any edition,
-including Community) and press F5. The C# language version used is 7.3.
+Or open `WindowsWeatherApp.sln` in Visual Studio 2019 or later and press F5. The
+output is a single `WindowsWeather.exe` in `src/WeatherApp.WinForms/bin/Release/`.
 
-The output is a single self-contained `WindowsWeather.exe` in
-`src/WeatherApp/bin/Release/`.
+> The classic project file declares `NETFRAMEWORK` in `DefineConstants` by hand.
+> SDK-style projects define it implicitly; classic ones do not, and without it
+> the platform guards in the shared core silently compile out the wrong branch.
+> `AppPaths.cs` carries an `#error` that fires if it ever goes missing again.
 
-### Why .NET Framework 4.6.2 and WinForms
+### macOS head
 
-It is the only mainstream stack that still covers Windows 7 through 11 from one
-binary. .NET 5 and later dropped Windows 7; Electron dropped it at version 23;
-Python dropped it at 3.9. 4.6.2 is also the lowest version that enables TLS 1.2
-by default, which every endpoint the app talks to requires — so it is a
-functional floor, not a preference.
+```bash
+dotnet build src/WeatherApp.Mac/WeatherApp.Mac.csproj -c Release
+
+# or build a runnable .app bundle:
+./packaging/macos/build-app.sh                 # host architecture
+./packaging/macos/build-app.sh --arch osx-x64  # Intel
+./packaging/macos/build-app.sh --universal     # one binary for both
+```
+
+The two packaging modes trade off against each other. **Per-architecture**
+publishes normally, so every native dependency (Skia, HarfBuzz, the Avalonia
+native layer) lands in `Contents/MacOS` as its own dylib — the layout Apple's
+notarisation tooling expects, because each dylib can be signed in place.
+**Universal** uses a single-file publish and merges the two executables with
+`lipo`, which is
+[the only way .NET produces a universal binary](https://learn.microsoft.com/dotnet/core/deploying/macos#universal-binaries);
+the native libraries are then extracted at runtime rather than signed in place,
+which makes notarisation fiddlier.
+
+### Signing and notarising for distribution
+
+An ad-hoc signature is enough to run the app locally. Handing it to anyone else
+requires an **Apple Developer account ($99/yr)** for a Developer ID certificate.
+Without notarisation, Gatekeeper blocks the app on every machine but the one
+that built it. The sequence is:
+
+```bash
+codesign --force --options runtime --timestamp \
+  --sign "Developer ID Application: YOUR NAME (TEAMID)" \
+  "artifacts/macos/Windows Weather.app"
+
+ditto -c -k --keepParent "artifacts/macos/Windows Weather.app" upload.zip
+
+xcrun notarytool submit upload.zip \
+  --apple-id you@example.com --team-id TEAMID --password APP_SPECIFIC_PASSWORD \
+  --wait
+
+xcrun stapler staple "artifacts/macos/Windows Weather.app"
+```
 
 ---
 
@@ -98,8 +178,8 @@ what the watches and warnings are written against.
 
 ### How the precipitation types are derived
 
-This is worth being explicit about, because it is the part that is not simply
-read off an API:
+Worth being explicit about, because it is the part that is not simply read off
+an API:
 
 - **Any precipitation** — the NWS forecast grid's own probability where it
   reaches, otherwise the model's daily maximum.
@@ -123,8 +203,8 @@ hail probabilities stop at Day 3, so days 4–10 show a dash in that column.
 ### Identifying yourself to the NWS
 
 The NWS API asks callers to send a contact address and throttles traffic that
-does not. Setting `contact` in `%APPDATA%\WindowsWeatherApp\settings.json` makes
-rate-limiting far less likely if you refresh often:
+does not. Setting `contact` in `settings.json` makes rate-limiting far less
+likely if you refresh often:
 
 ```json
 { "contact": "you@example.com" }
@@ -133,10 +213,9 @@ rate-limiting far less likely if you refresh often:
 ### Changing an endpoint without rebuilding
 
 NOAA moves image and GIS paths every few years. Every upstream URL the app uses
-is listed in `%APPDATA%\WindowsWeatherApp\endpoints.json`, which is written on
-first run. If a radar or chart path ever changes, edit that file and restart —
-no rebuild needed. Unknown keys are ignored, so the file is safe to keep across
-versions.
+is listed in `endpoints.json` next to the settings file, written on first run. If
+a radar or chart path changes, edit that file and restart — no rebuild needed.
+Unknown keys are ignored, so the file is safe to keep across versions.
 
 ---
 
@@ -152,7 +231,7 @@ machine that is otherwise online:
    and the "Easy Fix" that enables TLS 1.2 for WinHTTP.
 3. Reboot.
 
-Errors are written to `%APPDATA%\WindowsWeatherApp\error.log`.
+Errors are written to `error.log` beside the settings file.
 
 ---
 
@@ -166,9 +245,15 @@ Errors are written to `%APPDATA%\WindowsWeatherApp\error.log`.
   right over a region-sized box; it is not a conformal projection and does not
   try to be.
 - **The jet stream map has no coastlines.** It is anchored with a lat/lon
-  graticule and labelled cities rather than a shapefile, which keeps the app
+  graticule and labelled cities rather than a shapefile, which keeps the core
   dependency-free.
 - **SPC hail probabilities only reach Day 3.** Nothing publishes them further out.
+- **macOS warning notifications are in-window toasts**, not Notification Center
+  alerts. A real system notification needs a signed, bundled app and would
+  silently do nothing in an unsigned development build — a worse failure than a
+  toast the user can definitely see.
+- **The macOS head also builds and runs on Linux** (Avalonia supports it), but
+  that is untested and unpackaged here.
 
 ---
 

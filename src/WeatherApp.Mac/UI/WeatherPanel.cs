@@ -25,7 +25,7 @@ namespace WeatherApp.UI
 
         protected WeatherPanel()
         {
-            Background = Theme.BackgroundBrush;
+            Background = AppTheme.BackgroundBrush;
             ClipToBounds = true;
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
@@ -107,7 +107,7 @@ namespace WeatherApp.UI
         /// <summary>Convenience for the "no data yet" state every panel shows.</summary>
         protected void DrawPlaceholder(DrawingContext context, string message)
         {
-            Theme.DrawText(context, message, Theme.Regular, Theme.SizeBody, Theme.TextMuted,
+            AppTheme.DrawText(context, message, AppTheme.Regular, AppTheme.SizeBody, AppTheme.TextMuted,
                 new Rect(0, 0, W, H), TextAlignment.Center, middle: true);
         }
     }

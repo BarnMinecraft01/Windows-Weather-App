@@ -211,18 +211,18 @@ namespace WeatherApp.UI
         protected override void DrawSurface(DrawingContext context)
         {
             var status = new Rect(Gutter, ToolbarHeight + 4, Math.Max(10, W - Gutter * 2), StatusHeight);
-            Theme.DrawLineText(context, _status, Theme.Regular, Theme.SizeSmall,
-                _statusIsError ? Theme.Brush(Theme.WarningColor) : Theme.TextMuted, status);
+            AppTheme.DrawLineText(context, _status, AppTheme.Regular, AppTheme.SizeSmall,
+                _statusIsError ? AppTheme.Brush(AppTheme.WarningColor) : AppTheme.TextMuted, status);
 
             Rect host = HostBounds();
             if (host.Width < 40 || host.Height < 40) return;
 
-            Theme.DrawCard(context, host);
+            AppTheme.DrawCard(context, host);
 
             if (_field == null || _field.Points.Count == 0)
             {
-                Theme.DrawText(context, "Upper-air winds have not been loaded yet.", Theme.Regular,
-                    Theme.SizeBody, Theme.TextMuted, host, TextAlignment.Center, middle: true);
+                AppTheme.DrawText(context, "Upper-air winds have not been loaded yet.", AppTheme.Regular,
+                    AppTheme.SizeBody, AppTheme.TextMuted, host, TextAlignment.Center, middle: true);
                 return;
             }
 
@@ -265,7 +265,7 @@ namespace WeatherApp.UI
                     // around it instead of the whole map reading as solid colour.
                     byte alpha = (byte)Math.Min(210d, 40d + (speed - 30d) * 2.2d);
 
-                    context.DrawRectangle(Theme.Brush(Theme.JetSpeedColor(speed), alpha), null,
+                    context.DrawRectangle(AppTheme.Brush(AppTheme.JetSpeedColor(speed), alpha), null,
                         new Rect(x, y, Math.Min(Block, map.Right - x), Math.Min(Block, map.Bottom - y)));
                 }
             }
@@ -299,7 +299,7 @@ namespace WeatherApp.UI
 
         private void DrawGraticule(DrawingContext context, Rect map)
         {
-            var pen = new Pen(Theme.Brush(Theme.TextColor, 46), 1,
+            var pen = new Pen(AppTheme.Brush(AppTheme.TextColor, 46), 1,
                 new DashStyle(new double[] { 1, 3 }, 0));
 
             for (double latitude = Math.Ceiling(_field.SouthLatitude / 10d) * 10d;
@@ -308,8 +308,8 @@ namespace WeatherApp.UI
                 double y = LatitudeToY(latitude, map);
                 context.DrawLine(pen, new Point(map.X, y), new Point(map.Right, y));
 
-                Theme.DrawLineText(context, latitude.ToString("0") + "°N", Theme.Regular,
-                    Theme.SizeSmall, Theme.TextFaint, new Rect(map.X + 4, y - 16, 52, 15));
+                AppTheme.DrawLineText(context, latitude.ToString("0") + "°N", AppTheme.Regular,
+                    AppTheme.SizeSmall, AppTheme.TextFaint, new Rect(map.X + 4, y - 16, 52, 15));
             }
 
             for (double longitude = Math.Ceiling(_field.WestLongitude / 10d) * 10d;
@@ -318,11 +318,11 @@ namespace WeatherApp.UI
                 double x = LongitudeToX(longitude, map);
                 context.DrawLine(pen, new Point(x, map.Y), new Point(x, map.Bottom));
 
-                Theme.DrawLineText(context, Math.Abs(longitude).ToString("0") + "°W", Theme.Regular,
-                    Theme.SizeSmall, Theme.TextFaint, new Rect(x + 4, map.Bottom - 18, 54, 15));
+                AppTheme.DrawLineText(context, Math.Abs(longitude).ToString("0") + "°W", AppTheme.Regular,
+                    AppTheme.SizeSmall, AppTheme.TextFaint, new Rect(x + 4, map.Bottom - 18, 54, 15));
             }
 
-            context.DrawRectangle(null, Theme.BorderPen, map);
+            context.DrawRectangle(null, AppTheme.BorderPen, map);
         }
 
         /// <summary>
@@ -355,7 +355,7 @@ namespace WeatherApp.UI
                     var to = new Point(x + dx / 2, y + dy / 2);
 
                     var pen = new Pen(
-                        point.IsJetCore ? Theme.White : Theme.Brush(Theme.TextColor, 200),
+                        point.IsJetCore ? AppTheme.White : AppTheme.Brush(AppTheme.TextColor, 200),
                         point.IsJetCore ? 2 : 1.3,
                         lineCap: PenLineCap.Round);
 
@@ -406,15 +406,15 @@ namespace WeatherApp.UI
                 double radius = isSelected ? 5 : 3;
 
                 context.DrawEllipse(
-                    isSelected ? Theme.Accent : Theme.Brush(Colors.White, 190),
-                    new Pen(Theme.Brush(Colors.Black, 190)),
+                    isSelected ? AppTheme.Accent : AppTheme.Brush(Colors.White, 190),
+                    new Pen(AppTheme.Brush(Colors.Black, 190)),
                     new Point(x, y), radius, radius);
 
                 if (isSelected || places.Count <= 12)
                 {
-                    Theme.DrawLineText(context, place.Name,
-                        isSelected ? Theme.Bold : Theme.Regular, Theme.SizeSmall,
-                        isSelected ? Theme.Accent : Theme.Brush(Colors.White, 210),
+                    AppTheme.DrawLineText(context, place.Name,
+                        isSelected ? AppTheme.Bold : AppTheme.Regular, AppTheme.SizeSmall,
+                        isSelected ? AppTheme.Accent : AppTheme.Brush(Colors.White, 210),
                         new Rect(x + 8, y - 9, 120, 18));
                 }
             }
@@ -429,13 +429,13 @@ namespace WeatherApp.UI
             double x = LongitudeToX(core.Longitude, map);
             double y = LatitudeToY(core.Latitude, map);
 
-            context.DrawEllipse(null, new Pen(Theme.White, 2), new Point(x, y), 11, 11);
+            context.DrawEllipse(null, new Pen(AppTheme.White, 2), new Point(x, y), 11, 11);
 
             var label = new Rect(x + 15, y - 10, 78, 20);
-            context.DrawRectangle(Theme.Brush(Colors.Black, 190), null, label, 4, 4);
+            context.DrawRectangle(AppTheme.Brush(Colors.Black, 190), null, label, 4, 4);
 
-            Theme.DrawLineText(context, Math.Round(core.SpeedKnots).ToString("0") + " kt",
-                Theme.Bold, Theme.SizeSmall, Theme.White, label, TextAlignment.Center);
+            AppTheme.DrawLineText(context, Math.Round(core.SpeedKnots).ToString("0") + " kt",
+                AppTheme.Bold, AppTheme.SizeSmall, AppTheme.White, label, TextAlignment.Center);
         }
 
         private static void DrawLegend(DrawingContext context, Rect host)
@@ -445,22 +445,22 @@ namespace WeatherApp.UI
             double y = host.Bottom - LegendHeight;
             double x = host.X + 14;
 
-            Theme.DrawLineText(context, "WIND SPEED", Theme.Regular, Theme.SizeSmall, Theme.TextFaint,
+            AppTheme.DrawLineText(context, "WIND SPEED", AppTheme.Regular, AppTheme.SizeSmall, AppTheme.TextFaint,
                 new Rect(x, y, 86, 18));
             x += 90;
 
             foreach (int threshold in thresholds)
             {
-                context.DrawRectangle(Theme.Brush(Theme.JetSpeedColor(threshold)), null,
+                context.DrawRectangle(AppTheme.Brush(AppTheme.JetSpeedColor(threshold)), null,
                     new Rect(x, y + 5, 20, 10), 2, 2);
 
-                Theme.DrawLineText(context, threshold.ToString(CultureInfo.InvariantCulture),
-                    Theme.Regular, Theme.SizeSmall, Theme.TextMuted, new Rect(x + 24, y, 32, 18));
+                AppTheme.DrawLineText(context, threshold.ToString(CultureInfo.InvariantCulture),
+                    AppTheme.Regular, AppTheme.SizeSmall, AppTheme.TextMuted, new Rect(x + 24, y, 32, 18));
                 x += 56;
             }
 
-            Theme.DrawLineText(context, "kt  ·  jet core is 70 kt and above", Theme.Regular,
-                Theme.SizeSmall, Theme.TextFaint, new Rect(x, y, 240, 18));
+            AppTheme.DrawLineText(context, "kt  ·  jet core is 70 kt and above", AppTheme.Regular,
+                AppTheme.SizeSmall, AppTheme.TextFaint, new Rect(x, y, 240, 18));
         }
 
         // ---- projection ------------------------------------------------------

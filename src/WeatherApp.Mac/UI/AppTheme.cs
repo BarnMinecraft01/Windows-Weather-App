@@ -14,7 +14,7 @@ namespace WeatherApp.UI
     /// code port across almost unchanged: the maths is identical and only the
     /// drawing calls differ.
     /// </summary>
-    public static class Theme
+    public static class AppTheme
     {
         // ---- palette (identical values to the WinForms head) -------------------
         public static readonly Color Background = Color.FromRgb(0x12, 0x16, 0x1C);

@@ -37,30 +37,30 @@ namespace WeatherApp.UI
             _columns = new List<Column>
             {
                 new Column { Title = "DAY", Width = 124,
-                    Value = d => d.DayLabel, Tint = d => Theme.TextColor },
+                    Value = d => d.DayLabel, Tint = d => AppTheme.TextColor },
                 new Column { Title = "ANY PRECIP", Width = 104,
                     Value = d => Percent(d.AnyPrecipitationChance),
-                    Tint = d => Shade(d.AnyPrecipitationChance, Theme.AccentColor) },
+                    Tint = d => Shade(d.AnyPrecipitationChance, AppTheme.AccentColor) },
                 new Column { Title = "RAIN", Width = 84,
                     Value = d => Percent(d.RainChance),
-                    Tint = d => Shade(d.RainChance, Theme.RainColor) },
+                    Tint = d => Shade(d.RainChance, AppTheme.RainColor) },
                 new Column { Title = "SNOW", Width = 84,
                     Value = d => Percent(d.SnowChance),
-                    Tint = d => Shade(d.SnowChance, Theme.SnowColor) },
+                    Tint = d => Shade(d.SnowChance, AppTheme.SnowColor) },
                 new Column { Title = "FRZ RAIN", Width = 92,
                     Value = d => Percent(d.IcyChance),
-                    Tint = d => Shade(d.IcyChance, Theme.IceColor) },
+                    Tint = d => Shade(d.IcyChance, AppTheme.IceColor) },
                 new Column { Title = "T-STORM", Width = 92,
                     Value = d => Percent(d.ThunderstormChance),
-                    Tint = d => Shade(d.ThunderstormChance, Theme.ThunderColor) },
+                    Tint = d => Shade(d.ThunderstormChance, AppTheme.ThunderColor) },
                 new Column { Title = "HAIL (SPC)", Width = 100,
                     Value = d => Percent(d.SevereHailChance),
-                    Tint = d => Shade(d.SevereHailChance, Theme.HailColor) },
+                    Tint = d => Shade(d.SevereHailChance, AppTheme.HailColor) },
                 new Column { Title = "SEVERE RISK", Width = 140,
                     Value = d => string.IsNullOrEmpty(d.SevereRiskCategory) ? "--" : d.SevereRiskCategory,
                     Tint = d => RiskColor(d.SevereRiskCategory) },
                 new Column { Title = "AMOUNT", Width = 112,
-                    Value = FormatAmount, Tint = d => Theme.TextMutedColor }
+                    Value = FormatAmount, Tint = d => AppTheme.TextMutedColor }
             };
         }
 
@@ -76,7 +76,7 @@ namespace WeatherApp.UI
                 Math.Max(10, W - Gutter * 2),
                 Math.Max(80, H - NotesHeight - Gutter * 3));
 
-            Theme.DrawCard(context, table);
+            AppTheme.DrawCard(context, table);
             DrawTable(context, table);
             DrawNotes(context);
         }
@@ -94,13 +94,13 @@ namespace WeatherApp.UI
             foreach (Column column in _columns)
             {
                 double width = column.Width + extra;
-                Theme.DrawLineText(context, column.Title, Theme.Bold, Theme.SizeSmall, Theme.TextFaint,
+                AppTheme.DrawLineText(context, column.Title, AppTheme.Bold, AppTheme.SizeSmall, AppTheme.TextFaint,
                     new Rect(x, inner.Y, width - 10, HeaderRowHeight));
                 x += width;
             }
 
             double lineY = inner.Y + HeaderRowHeight;
-            context.DrawLine(Theme.BorderPen, new Point(inner.X, lineY), new Point(inner.Right, lineY));
+            context.DrawLine(AppTheme.BorderPen, new Point(inner.X, lineY), new Point(inner.Right, lineY));
 
             List<PrecipitationDay> days = Snapshot.Precipitation.Days;
             double y = inner.Y + HeaderRowHeight + 3;
@@ -113,7 +113,7 @@ namespace WeatherApp.UI
 
                 if (i % 2 == 1)
                 {
-                    context.DrawRectangle(Theme.Brush(Theme.SurfaceAlt, 40), null,
+                    context.DrawRectangle(AppTheme.Brush(AppTheme.SurfaceAlt, 40), null,
                         new Rect(inner.X, y, inner.Width, RowHeight));
                 }
 
@@ -135,8 +135,8 @@ namespace WeatherApp.UI
                     }
                     else
                     {
-                        Theme.DrawLineText(context, text, c == 0 ? Theme.Bold : Theme.Regular,
-                            Theme.SizeBody, Theme.Brush(color), cell);
+                        AppTheme.DrawLineText(context, text, c == 0 ? AppTheme.Bold : AppTheme.Regular,
+                            AppTheme.SizeBody, AppTheme.Brush(color), cell);
                     }
 
                     x += width;
@@ -150,8 +150,8 @@ namespace WeatherApp.UI
         {
             var pill = new Rect(cell.X, cell.Y + cell.Height / 2 - 11, Math.Min(64, cell.Width), 22);
 
-            context.DrawRectangle(Theme.Brush(color, 46), new Pen(Theme.Brush(color, 120)), pill, 11, 11);
-            Theme.DrawLineText(context, text, Theme.Bold, Theme.SizeBody, Theme.Brush(color),
+            context.DrawRectangle(AppTheme.Brush(color, 46), new Pen(AppTheme.Brush(color, 120)), pill, 11, 11);
+            AppTheme.DrawLineText(context, text, AppTheme.Bold, AppTheme.SizeBody, AppTheme.Brush(color),
                 pill, TextAlignment.Center);
         }
 
@@ -176,8 +176,8 @@ namespace WeatherApp.UI
                     + " -- the higher this runs, the stronger any storms that do form.");
             }
 
-            Theme.DrawText(context, string.Join("  ", notes), Theme.Regular, Theme.SizeSmall,
-                Theme.TextFaint, bounds);
+            AppTheme.DrawText(context, string.Join("  ", notes), AppTheme.Regular, AppTheme.SizeSmall,
+                AppTheme.TextFaint, bounds);
         }
 
         // ---- formatting ------------------------------------------------------
@@ -191,7 +191,7 @@ namespace WeatherApp.UI
 
         private static Color Shade(double? value, Color baseColor)
         {
-            if (!value.HasValue) return Theme.TextFaintColor;
+            if (!value.HasValue) return AppTheme.TextFaintColor;
             if (value.Value < 10) return Color.FromArgb(150, baseColor.R, baseColor.G, baseColor.B);
             return baseColor;
         }
@@ -201,12 +201,12 @@ namespace WeatherApp.UI
             switch ((category ?? string.Empty).ToLowerInvariant())
             {
                 case "high":
-                case "moderate": return Theme.DangerColor;
-                case "enhanced": return Theme.WarningColor;
-                case "slight": return Theme.CautionColor;
-                case "marginal": return Theme.OkColor;
-                case "general thunderstorms": return Theme.TextMutedColor;
-                default: return Theme.TextFaintColor;
+                case "moderate": return AppTheme.DangerColor;
+                case "enhanced": return AppTheme.WarningColor;
+                case "slight": return AppTheme.CautionColor;
+                case "marginal": return AppTheme.OkColor;
+                case "general thunderstorms": return AppTheme.TextMutedColor;
+                default: return AppTheme.TextFaintColor;
             }
         }
 

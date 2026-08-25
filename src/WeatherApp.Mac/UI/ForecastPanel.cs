@@ -68,7 +68,7 @@ namespace WeatherApp.UI
 
             List<ForecastDay> days = Days();
             Rect listBounds = ListBounds();
-            Theme.DrawCard(context, listBounds);
+            AppTheme.DrawCard(context, listBounds);
 
             double rowHeight = RowHeight(days.Count);
             double minimum, maximum;
@@ -92,12 +92,12 @@ namespace WeatherApp.UI
         {
             if (index == _selectedIndex)
             {
-                context.DrawRectangle(Theme.SurfaceAltBrush, null,
+                context.DrawRectangle(AppTheme.SurfaceAltBrush, null,
                     bounds.Deflate(new Thickness(5, 1)), 4, 4);
             }
             else if (index == _hoverIndex)
             {
-                context.DrawRectangle(Theme.Brush(Theme.SurfaceHover, 60), null,
+                context.DrawRectangle(AppTheme.Brush(AppTheme.SurfaceHover, 60), null,
                     bounds.Deflate(new Thickness(5, 1)), 4, 4);
             }
 
@@ -105,21 +105,21 @@ namespace WeatherApp.UI
             double top = bounds.Y;
             double height = bounds.Height;
 
-            Theme.DrawLineText(context, day.DayLabel, Theme.Bold, Theme.SizeBody, Theme.Text,
+            AppTheme.DrawLineText(context, day.DayLabel, AppTheme.Bold, AppTheme.SizeBody, AppTheme.Text,
                 new Rect(x, top, 82, height));
             x += 82;
 
-            Theme.DrawLineText(context, day.Date.ToString("MMM d"), Theme.Regular, Theme.SizeSmall,
-                Theme.TextFaint, new Rect(x, top, 62, height));
+            AppTheme.DrawLineText(context, day.Date.ToString("MMM d"), AppTheme.Regular, AppTheme.SizeSmall,
+                AppTheme.TextFaint, new Rect(x, top, 62, height));
             x += 62;
 
-            Theme.DrawLineText(context, WeatherCodes.Glyph(day.WeatherCode, true), Theme.Regular,
-                Theme.SizeBody, Theme.Accent, new Rect(x, top, 26, height), TextAlignment.Center);
+            AppTheme.DrawLineText(context, WeatherCodes.Glyph(day.WeatherCode, true), AppTheme.Regular,
+                AppTheme.SizeBody, AppTheme.Accent, new Rect(x, top, 26, height), TextAlignment.Center);
             x += 30;
 
             double summaryWidth = Math.Max(80, bounds.Width - x - 360);
-            Theme.DrawLineText(context, day.Summary ?? "--", Theme.Regular, Theme.SizeBody,
-                Theme.Text, new Rect(x, top, summaryWidth, height));
+            AppTheme.DrawLineText(context, day.Summary ?? "--", AppTheme.Regular, AppTheme.SizeBody,
+                AppTheme.Text, new Rect(x, top, summaryWidth, height));
             x += summaryWidth + 10;
 
             bool wet = day.PrecipitationProbability.HasValue && day.PrecipitationProbability.Value >= 30;
@@ -127,21 +127,21 @@ namespace WeatherApp.UI
                 ? Units.FormatPercent(day.PrecipitationProbability)
                 : "--";
 
-            Theme.DrawLineText(context, pop, Theme.Bold, Theme.SizeBody,
-                wet ? Theme.Rain : Theme.TextFaint,
+            AppTheme.DrawLineText(context, pop, AppTheme.Bold, AppTheme.SizeBody,
+                wet ? AppTheme.Rain : AppTheme.TextFaint,
                 new Rect(x, top, 54, height), TextAlignment.Right);
             x += 62;
 
-            Theme.DrawLineText(context, Units.FormatTemperature(day.LowF), Theme.Regular,
-                Theme.SizeBody, Theme.TextMuted, new Rect(x, top, 48, height), TextAlignment.Right);
+            AppTheme.DrawLineText(context, Units.FormatTemperature(day.LowF), AppTheme.Regular,
+                AppTheme.SizeBody, AppTheme.TextMuted, new Rect(x, top, 48, height), TextAlignment.Right);
             x += 54;
 
             double barWidth = Math.Max(40, bounds.Right - x - 68);
             DrawRangeBar(context, new Rect(x, top + height / 2 - 4, barWidth, 8), day, minimum, maximum);
             x += barWidth + 10;
 
-            Theme.DrawLineText(context, Units.FormatTemperature(day.HighF), Theme.Bold,
-                Theme.SizeBody, Theme.Text, new Rect(x, top, 50, height));
+            AppTheme.DrawLineText(context, Units.FormatTemperature(day.HighF), AppTheme.Bold,
+                AppTheme.SizeBody, AppTheme.Text, new Rect(x, top, 50, height));
         }
 
         /// <summary>
@@ -151,7 +151,7 @@ namespace WeatherApp.UI
         private static void DrawRangeBar(DrawingContext context, Rect track,
             ForecastDay day, double minimum, double maximum)
         {
-            context.DrawRectangle(Theme.Brush(Theme.BorderColor, 70), null, track, 4, 4);
+            context.DrawRectangle(AppTheme.Brush(AppTheme.BorderColor, 70), null, track, 4, 4);
 
             if (!day.HighF.HasValue || !day.LowF.HasValue) return;
 
@@ -188,7 +188,7 @@ namespace WeatherApp.UI
             var bounds = new Rect(Gutter, H - DetailHeight - Gutter, W - Gutter * 2, DetailHeight);
             if (bounds.Width <= 20 || bounds.Y < Gutter) return;
 
-            Theme.DrawCard(context, bounds);
+            AppTheme.DrawCard(context, bounds);
             Rect inner = bounds.Deflate(new Thickness(18, 14));
 
             int index = Math.Min(Math.Max(0, _selectedIndex), days.Count - 1);
@@ -197,14 +197,14 @@ namespace WeatherApp.UI
             string heading = day.Date.ToString("dddd, MMMM d");
             if (!string.IsNullOrEmpty(day.Source)) heading += "   ·   " + day.Source;
 
-            Theme.DrawLineText(context, heading, Theme.Bold, Theme.SizeSmall, Theme.TextMuted,
+            AppTheme.DrawLineText(context, heading, AppTheme.Bold, AppTheme.SizeSmall, AppTheme.TextMuted,
                 new Rect(inner.X, inner.Y, inner.Width, 18), middle: false);
 
             string narrative = !string.IsNullOrWhiteSpace(day.DetailedForecast)
                 ? day.DetailedForecast
                 : BuildFallbackNarrative(day);
 
-            Theme.DrawText(context, narrative, Theme.Regular, Theme.SizeBody, Theme.Text,
+            AppTheme.DrawText(context, narrative, AppTheme.Regular, AppTheme.SizeBody, AppTheme.Text,
                 new Rect(inner.X, inner.Y + 24, inner.Width, inner.Height - 24));
         }
 

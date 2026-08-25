@@ -43,34 +43,34 @@ namespace WeatherApp.UI
 
         private void DrawHeader(DrawingContext context, Rect bounds)
         {
-            Theme.DrawCard(context, bounds);
+            AppTheme.DrawCard(context, bounds);
 
             Rect inner = bounds.Deflate(new Thickness(20, 16));
             CurrentConditions current = Snapshot.Current;
 
             string place = Snapshot.Location != null ? Snapshot.Location.DisplayName : "Unknown location";
-            Theme.DrawLineText(context, place, Theme.Regular, Theme.SizeTitle, Theme.Text,
+            AppTheme.DrawLineText(context, place, AppTheme.Regular, AppTheme.SizeTitle, AppTheme.Text,
                 new Rect(inner.X, inner.Y, inner.Width, 32), middle: false);
 
             if (current == null)
             {
-                Theme.DrawText(context, "Current conditions are unavailable.", Theme.Regular,
-                    Theme.SizeBody, Theme.TextMuted, new Rect(inner.X, inner.Y + 44, inner.Width, 24));
+                AppTheme.DrawText(context, "Current conditions are unavailable.", AppTheme.Regular,
+                    AppTheme.SizeBody, AppTheme.TextMuted, new Rect(inner.X, inner.Y + 44, inner.Width, 24));
                 return;
             }
 
             // Temperature, oversized: the one number people open the app for.
-            Theme.DrawLineText(context, Units.FormatTemperature(current.TemperatureF),
-                Theme.Regular, Theme.SizeHuge, Theme.Text,
+            AppTheme.DrawLineText(context, Units.FormatTemperature(current.TemperatureF),
+                AppTheme.Regular, AppTheme.SizeHuge, AppTheme.Text,
                 new Rect(inner.X, inner.Y + 34, 230, 76));
 
             double textX = inner.X + 218;
 
-            Theme.DrawLineText(context, WeatherCodes.Glyph(current.WeatherCode, current.IsDaytime),
-                Theme.Regular, Theme.SizeGlyph, Theme.Accent,
+            AppTheme.DrawLineText(context, WeatherCodes.Glyph(current.WeatherCode, current.IsDaytime),
+                AppTheme.Regular, AppTheme.SizeGlyph, AppTheme.Accent,
                 new Rect(textX, inner.Y + 42, 42, 38), TextAlignment.Center);
 
-            Theme.DrawLineText(context, current.Summary ?? "--", Theme.Bold, Theme.SizeHeading, Theme.Text,
+            AppTheme.DrawLineText(context, current.Summary ?? "--", AppTheme.Bold, AppTheme.SizeHeading, AppTheme.Text,
                 new Rect(textX + 48, inner.Y + 42, Math.Max(40, inner.Right - textX - 48), 28));
 
             var extras = new List<string>();
@@ -87,8 +87,8 @@ namespace WeatherApp.UI
                 extras.Add("gusting " + Units.FormatSpeed(current.WindGustMph));
             }
 
-            Theme.DrawLineText(context, string.Join("   ·   ", extras), Theme.Regular,
-                Theme.SizeBody, Theme.TextMuted,
+            AppTheme.DrawLineText(context, string.Join("   ·   ", extras), AppTheme.Regular,
+                AppTheme.SizeBody, AppTheme.TextMuted,
                 new Rect(textX + 48, inner.Y + 74, Math.Max(40, inner.Right - textX - 48), 24));
 
             ForecastDay today = Snapshot.Days.FirstOrDefault();
@@ -96,13 +96,13 @@ namespace WeatherApp.UI
             {
                 string range = "Today  " + Units.FormatTemperature(today.HighF)
                                + " / " + Units.FormatTemperature(today.LowF);
-                Theme.DrawLineText(context, range, Theme.Bold, Theme.SizeBody, Theme.Text,
+                AppTheme.DrawLineText(context, range, AppTheme.Bold, AppTheme.SizeBody, AppTheme.Text,
                     new Rect(textX + 48, inner.Y + 102, Math.Max(40, inner.Right - textX - 48), 24));
             }
 
             string stamp = "Updated " + Snapshot.RetrievedAt.ToString("h:mm tt")
                            + (string.IsNullOrEmpty(current.Source) ? string.Empty : "  ·  " + current.Source);
-            Theme.DrawLineText(context, stamp, Theme.Regular, Theme.SizeSmall, Theme.TextFaint,
+            AppTheme.DrawLineText(context, stamp, AppTheme.Regular, AppTheme.SizeSmall, AppTheme.TextFaint,
                 new Rect(inner.X, inner.Bottom - 20, inner.Width, 18));
         }
 
@@ -112,17 +112,17 @@ namespace WeatherApp.UI
         /// </summary>
         private void DrawHourlyChart(DrawingContext context, Rect bounds)
         {
-            Theme.DrawCard(context, bounds);
+            AppTheme.DrawCard(context, bounds);
             Rect inner = bounds.Deflate(new Thickness(18, 14));
 
-            Theme.DrawLineText(context, "NEXT 24 HOURS", Theme.Bold, Theme.SizeSmall, Theme.TextMuted,
+            AppTheme.DrawLineText(context, "NEXT 24 HOURS", AppTheme.Bold, AppTheme.SizeSmall, AppTheme.TextMuted,
                 new Rect(inner.X, inner.Y, inner.Width, 18), middle: false);
 
             List<HourlyPoint> hours = UpcomingHours(24);
             if (hours.Count < 2)
             {
-                Theme.DrawText(context, "Hourly data is unavailable.", Theme.Regular, Theme.SizeBody,
-                    Theme.TextMuted, new Rect(inner.X, inner.Y + 32, inner.Width, 22));
+                AppTheme.DrawText(context, "Hourly data is unavailable.", AppTheme.Regular, AppTheme.SizeBody,
+                    AppTheme.TextMuted, new Rect(inner.X, inner.Y + 32, inner.Width, 22));
                 return;
             }
 
@@ -143,13 +143,13 @@ namespace WeatherApp.UI
 
                 double barHeight = Math.Max(2, barZoneHeight * Math.Min(probability, 100d) / 100d);
 
-                Color color = Theme.RainColor;
+                Color color = AppTheme.RainColor;
                 if ((hour.SnowfallInches ?? 0) > 0.01 || WeatherCodes.IsSnow(hour.WeatherCode))
                 {
-                    color = Theme.SnowColor;
+                    color = AppTheme.SnowColor;
                 }
-                else if (WeatherCodes.IsFreezing(hour.WeatherCode)) color = Theme.IceColor;
-                else if (hour.IsThunder) color = Theme.ThunderColor;
+                else if (WeatherCodes.IsFreezing(hour.WeatherCode)) color = AppTheme.IceColor;
+                else if (hour.IsThunder) color = AppTheme.ThunderColor;
 
                 var bar = new Rect(
                     plot.X + i * columnWidth + 1,
@@ -157,7 +157,7 @@ namespace WeatherApp.UI
                     Math.Max(2, columnWidth - 2),
                     barHeight);
 
-                context.DrawRectangle(Theme.Brush(color, 190), null, bar);
+                context.DrawRectangle(AppTheme.Brush(color, 190), null, bar);
             }
 
             DrawTemperatureLine(context, plot, hours, columnWidth, barZoneTop);
@@ -195,7 +195,7 @@ namespace WeatherApp.UI
 
             // Avalonia has no polyline primitive on DrawingContext; successive
             // segments are equivalent here and avoid building a geometry per frame.
-            var pen = new Pen(Theme.Accent, 2, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+            var pen = new Pen(AppTheme.Accent, 2, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
             for (int i = 1; i < points.Count; i++)
             {
                 context.DrawLine(pen, points[i - 1], points[i]);
@@ -214,8 +214,8 @@ namespace WeatherApp.UI
             if (index < 0 || index >= points.Count) return;
 
             Point point = points[index];
-            Theme.DrawLineText(context, Units.FormatTemperature(value), Theme.Bold, Theme.SizeSmall,
-                Theme.Text, new Rect(point.X - 26, point.Y - 24, 52, 18), TextAlignment.Center);
+            AppTheme.DrawLineText(context, Units.FormatTemperature(value), AppTheme.Bold, AppTheme.SizeSmall,
+                AppTheme.Text, new Rect(point.X - 26, point.Y - 24, 52, 18), TextAlignment.Center);
         }
 
         private static void DrawHourLabels(DrawingContext context, Rect plot,
@@ -229,14 +229,14 @@ namespace WeatherApp.UI
                 var bounds = new Rect(
                     plot.X + i * columnWidth - 16, plot.Bottom + 4, columnWidth + 32, 18);
 
-                Theme.DrawLineText(context, hours[i].Time.ToString("htt").ToLowerInvariant(),
-                    Theme.Regular, Theme.SizeSmall, Theme.TextFaint, bounds, TextAlignment.Center);
+                AppTheme.DrawLineText(context, hours[i].Time.ToString("htt").ToLowerInvariant(),
+                    AppTheme.Regular, AppTheme.SizeSmall, AppTheme.TextFaint, bounds, TextAlignment.Center);
             }
         }
 
         private void DrawDetails(DrawingContext context, Rect bounds)
         {
-            Theme.DrawCard(context, bounds);
+            AppTheme.DrawCard(context, bounds);
             Rect inner = bounds.Deflate(new Thickness(18, 14));
 
             CurrentConditions current = Snapshot.Current;
@@ -282,10 +282,10 @@ namespace WeatherApp.UI
                 double y = inner.Y + (i / columns) * RowHeight;
                 if (y + RowHeight > inner.Bottom) break;
 
-                Theme.DrawLineText(context, entries[i].Key.ToUpperInvariant(), Theme.Regular,
-                    Theme.SizeSmall, Theme.TextFaint, new Rect(x, y, columnWidth - 12, 16));
-                Theme.DrawLineText(context, entries[i].Value, Theme.Bold, Theme.SizeBody,
-                    Theme.Text, new Rect(x, y + 18, columnWidth - 12, 22));
+                AppTheme.DrawLineText(context, entries[i].Key.ToUpperInvariant(), AppTheme.Regular,
+                    AppTheme.SizeSmall, AppTheme.TextFaint, new Rect(x, y, columnWidth - 12, 16));
+                AppTheme.DrawLineText(context, entries[i].Value, AppTheme.Bold, AppTheme.SizeBody,
+                    AppTheme.Text, new Rect(x, y + 18, columnWidth - 12, 22));
             }
         }
 

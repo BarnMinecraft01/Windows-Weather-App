@@ -112,7 +112,7 @@ namespace WeatherApp.UI
             DrawSummary(context);
 
             Rect list = ListBounds();
-            Theme.DrawCard(context, list);
+            AppTheme.DrawCard(context, list);
 
             if (_alerts.Count == 0) return;
 
@@ -135,8 +135,8 @@ namespace WeatherApp.UI
 
             if (Snapshot == null)
             {
-                Theme.DrawLineText(context, "No alerts loaded.", Theme.Bold, Theme.SizeBody,
-                    Theme.TextMuted, bounds);
+                AppTheme.DrawLineText(context, "No alerts loaded.", AppTheme.Bold, AppTheme.SizeBody,
+                    AppTheme.TextMuted, bounds);
                 return;
             }
 
@@ -146,8 +146,8 @@ namespace WeatherApp.UI
 
             if (_alerts.Count == 0)
             {
-                Theme.DrawLineText(context, "No active alerts for " + scope + ".", Theme.Bold,
-                    Theme.SizeBody, Theme.Brush(Theme.OkColor), bounds);
+                AppTheme.DrawLineText(context, "No active alerts for " + scope + ".", AppTheme.Bold,
+                    AppTheme.SizeBody, AppTheme.Brush(AppTheme.OkColor), bounds);
                 return;
             }
 
@@ -165,30 +165,30 @@ namespace WeatherApp.UI
             }
             text.Append(" for ").Append(scope).Append('.');
 
-            Theme.DrawLineText(context, text.ToString(), Theme.Bold, Theme.SizeBody,
-                Theme.Brush(warnings > 0 ? Theme.DangerColor : Theme.WarningColor), bounds);
+            AppTheme.DrawLineText(context, text.ToString(), AppTheme.Bold, AppTheme.SizeBody,
+                AppTheme.Brush(warnings > 0 ? AppTheme.DangerColor : AppTheme.WarningColor), bounds);
         }
 
         private void DrawRow(DrawingContext context, Rect bounds, WeatherAlert alert, int index)
         {
             if (index == _selectedIndex)
             {
-                context.DrawRectangle(Theme.SurfaceAltBrush, null, bounds);
+                context.DrawRectangle(AppTheme.SurfaceAltBrush, null, bounds);
             }
             else if (index == _hoverIndex)
             {
-                context.DrawRectangle(Theme.Brush(Theme.SurfaceHover, 70), null, bounds);
+                context.DrawRectangle(AppTheme.Brush(AppTheme.SurfaceHover, 70), null, bounds);
             }
 
-            Color accent = Theme.AlertColor(alert.Severity, alert.IsWarning);
+            Color accent = AppTheme.AlertColor(alert.Severity, alert.IsWarning);
 
             // A colour bar down the left edge, so severity reads without depending
             // on the text colour alone.
-            context.DrawRectangle(Theme.Brush(accent), null,
+            context.DrawRectangle(AppTheme.Brush(accent), null,
                 new Rect(bounds.X, bounds.Y + 5, 4, bounds.Height - 10), 2, 2);
 
-            Theme.DrawLineText(context, alert.Event ?? "Weather Alert", Theme.Bold, Theme.SizeBody,
-                Theme.Brush(accent), new Rect(bounds.X + 14, bounds.Y + 6, bounds.Width - 20, 20));
+            AppTheme.DrawLineText(context, alert.Event ?? "Weather Alert", AppTheme.Bold, AppTheme.SizeBody,
+                AppTheme.Brush(accent), new Rect(bounds.X + 14, bounds.Y + 6, bounds.Width - 20, 20));
 
             string subtitle = alert.AreaDescription ?? string.Empty;
             if (alert.Expires.HasValue)
@@ -197,7 +197,7 @@ namespace WeatherApp.UI
                            + (string.IsNullOrEmpty(subtitle) ? string.Empty : "  ·  " + subtitle);
             }
 
-            Theme.DrawLineText(context, subtitle, Theme.Regular, Theme.SizeSmall, Theme.TextMuted,
+            AppTheme.DrawLineText(context, subtitle, AppTheme.Regular, AppTheme.SizeSmall, AppTheme.TextMuted,
                 new Rect(bounds.X + 14, bounds.Y + 26, bounds.Width - 20, 18));
         }
 

@@ -21,12 +21,12 @@ namespace WeatherApp.UI
             {
                 Width = width,
                 Height = 28,
-                Background = Theme.SurfaceAltBrush,
-                Foreground = Theme.Text,
-                BorderBrush = Theme.Brush(Theme.BorderColor),
+                Background = AppTheme.SurfaceAltBrush,
+                Foreground = AppTheme.Text,
+                BorderBrush = AppTheme.Brush(AppTheme.BorderColor),
                 BorderThickness = new Thickness(1),
-                FontFamily = Theme.UiFont,
-                FontSize = Theme.SizeBody,
+                FontFamily = AppTheme.UiFont,
+                FontSize = AppTheme.SizeBody,
                 VerticalAlignment = VerticalAlignment.Center
             };
         }
@@ -38,12 +38,12 @@ namespace WeatherApp.UI
                 Content = text,
                 Width = width,
                 Height = 28,
-                Background = Theme.SurfaceAltBrush,
-                Foreground = Theme.Text,
-                BorderBrush = Theme.Brush(Theme.BorderColor),
+                Background = AppTheme.SurfaceAltBrush,
+                Foreground = AppTheme.Text,
+                BorderBrush = AppTheme.Brush(AppTheme.BorderColor),
                 BorderThickness = new Thickness(1),
-                FontFamily = Theme.UiFont,
-                FontSize = Theme.SizeBody,
+                FontFamily = AppTheme.UiFont,
+                FontSize = AppTheme.SizeBody,
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand)
@@ -55,9 +55,9 @@ namespace WeatherApp.UI
             return new TextBlock
             {
                 Text = (text ?? string.Empty).ToUpperInvariant(),
-                Foreground = Theme.TextFaint,
-                FontFamily = Theme.UiFont,
-                FontSize = Theme.SizeSmall,
+                Foreground = AppTheme.TextFaint,
+                FontFamily = AppTheme.UiFont,
+                FontSize = AppTheme.SizeSmall,
                 VerticalAlignment = VerticalAlignment.Center
             };
         }
@@ -67,9 +67,9 @@ namespace WeatherApp.UI
             return new TextBlock
             {
                 Text = text ?? string.Empty,
-                Foreground = brush ?? Theme.TextMuted,
-                FontFamily = Theme.UiFont,
-                FontSize = size ?? Theme.SizeSmall,
+                Foreground = brush ?? AppTheme.TextMuted,
+                FontFamily = AppTheme.UiFont,
+                FontSize = size ?? AppTheme.SizeSmall,
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
@@ -81,9 +81,9 @@ namespace WeatherApp.UI
             {
                 Content = text,
                 IsChecked = isChecked,
-                Foreground = Theme.Text,
-                FontFamily = Theme.UiFont,
-                FontSize = Theme.SizeBody,
+                Foreground = AppTheme.Text,
+                FontFamily = AppTheme.UiFont,
+                FontSize = AppTheme.SizeBody,
                 VerticalAlignment = VerticalAlignment.Center
             };
         }
@@ -94,12 +94,12 @@ namespace WeatherApp.UI
             {
                 Width = width,
                 Height = 28,
-                Background = Theme.SurfaceAltBrush,
-                Foreground = Theme.Text,
-                BorderBrush = Theme.Brush(Theme.BorderColor),
+                Background = AppTheme.SurfaceAltBrush,
+                Foreground = AppTheme.Text,
+                BorderBrush = AppTheme.Brush(AppTheme.BorderColor),
                 BorderThickness = new Thickness(1),
-                FontFamily = Theme.UiFont,
-                FontSize = Theme.SizeBody
+                FontFamily = AppTheme.UiFont,
+                FontSize = AppTheme.SizeBody
             };
         }
 
@@ -111,11 +111,11 @@ namespace WeatherApp.UI
                 IsReadOnly = true,
                 AcceptsReturn = true,
                 TextWrapping = TextWrapping.Wrap,
-                Background = Theme.SurfaceBrush,
-                Foreground = Theme.Text,
+                Background = AppTheme.SurfaceBrush,
+                Foreground = AppTheme.Text,
                 BorderThickness = new Thickness(0),
-                FontFamily = Theme.UiFont,
-                FontSize = Theme.SizeBody
+                FontFamily = AppTheme.UiFont,
+                FontSize = AppTheme.SizeBody
             };
         }
 

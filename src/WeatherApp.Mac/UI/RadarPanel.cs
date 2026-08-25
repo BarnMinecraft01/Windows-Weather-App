@@ -299,18 +299,18 @@ namespace WeatherApp.UI
         protected override void DrawSurface(DrawingContext context)
         {
             var status = new Rect(Gutter, ToolbarHeight + 4, Math.Max(10, W - Gutter * 2), StatusHeight);
-            Theme.DrawLineText(context, _status, Theme.Regular, Theme.SizeSmall,
-                _statusIsError ? Theme.Brush(Theme.WarningColor) : Theme.TextMuted, status);
+            AppTheme.DrawLineText(context, _status, AppTheme.Regular, AppTheme.SizeSmall,
+                _statusIsError ? AppTheme.Brush(AppTheme.WarningColor) : AppTheme.TextMuted, status);
 
             Rect host = ImageBounds();
             if (host.Width < 20 || host.Height < 20) return;
 
-            Theme.DrawCard(context, host);
+            AppTheme.DrawCard(context, host);
 
             if (_loop == null || _loop.Frames.Count == 0)
             {
-                Theme.DrawText(context, "No radar imagery loaded.", Theme.Regular, Theme.SizeBody,
-                    Theme.TextMuted, host, TextAlignment.Center, middle: true);
+                AppTheme.DrawText(context, "No radar imagery loaded.", AppTheme.Regular, AppTheme.SizeBody,
+                    AppTheme.TextMuted, host, TextAlignment.Center, middle: true);
                 return;
             }
 
@@ -344,7 +344,7 @@ namespace WeatherApp.UI
             Rect track = ScrubBounds();
             if (track.Width < 40) return;
 
-            context.DrawRectangle(Theme.Brush(Theme.BorderColor, 110), null,
+            context.DrawRectangle(AppTheme.Brush(AppTheme.BorderColor, 110), null,
                 new Rect(track.X, track.Y + track.Height / 2 - 2, track.Width, 4), 2, 2);
 
             int count = _loop.Frames.Count;
@@ -354,7 +354,7 @@ namespace WeatherApp.UI
                 bool isCurrent = i == index;
 
                 context.DrawEllipse(
-                    isCurrent ? Theme.Accent : Theme.Brush(Theme.TextFaintColor),
+                    isCurrent ? AppTheme.Accent : AppTheme.Brush(AppTheme.TextFaintColor),
                     null,
                     new Point(x, track.Y + track.Height / 2),
                     isCurrent ? 6 : 3,
@@ -363,7 +363,7 @@ namespace WeatherApp.UI
 
             string caption = "Frame " + (index + 1) + " of " + count
                              + (index == count - 1 ? "  (latest)" : string.Empty);
-            Theme.DrawLineText(context, caption, Theme.Regular, Theme.SizeSmall, Theme.TextFaint,
+            AppTheme.DrawLineText(context, caption, AppTheme.Regular, AppTheme.SizeSmall, AppTheme.TextFaint,
                 new Rect(track.X, track.Bottom - 2, track.Width, 16), TextAlignment.Right);
         }
 

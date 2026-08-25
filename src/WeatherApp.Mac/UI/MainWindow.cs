@@ -67,7 +67,7 @@ namespace WeatherApp.UI
             Height = 800;
             MinWidth = 940;
             MinHeight = 640;
-            Background = Theme.BackgroundBrush;
+            Background = AppTheme.BackgroundBrush;
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
             // ---- toolbar ------------------------------------------------------
@@ -104,7 +104,7 @@ namespace WeatherApp.UI
             TextBlock locationCaption = Widgets.Caption("Location");
             TextBlock scopeCaption = Widgets.Caption("Alerts for");
 
-            _toolbar = new Canvas { Height = ToolbarHeight, Background = Theme.BackgroundBrush };
+            _toolbar = new Canvas { Height = ToolbarHeight, Background = AppTheme.BackgroundBrush };
             _toolbar.Children.Add(regionCaption);
             _toolbar.Children.Add(_regionBox);
             _toolbar.Children.Add(locationCaption);
@@ -121,7 +121,7 @@ namespace WeatherApp.UI
             // ---- tabs ---------------------------------------------------------
             _tabs = new TabControl
             {
-                Background = Theme.BackgroundBrush,
+                Background = AppTheme.BackgroundBrush,
                 Padding = new Thickness(0),
                 Margin = new Thickness(0)
             };
@@ -144,7 +144,7 @@ namespace WeatherApp.UI
                 if (panel != null) panel.OnActivated();
             };
 
-            _statusText = Widgets.Label("Ready.", Theme.TextMuted);
+            _statusText = Widgets.Label("Ready.", AppTheme.TextMuted);
             _statusText.Margin = new Thickness(16, 4, 16, 6);
 
             var layout = new DockPanel { LastChildFill = true };
@@ -180,9 +180,9 @@ namespace WeatherApp.UI
             {
                 Header = title,
                 Content = panel,
-                FontFamily = Theme.UiFont,
-                FontSize = Theme.SizeBody,
-                Foreground = Theme.Text
+                FontFamily = AppTheme.UiFont,
+                FontSize = AppTheme.SizeBody,
+                Foreground = AppTheme.Text
             };
         }
 
@@ -412,7 +412,7 @@ namespace WeatherApp.UI
             GeoLocation location = CurrentLocation;
             if (location == null)
             {
-                SetStatus("Add a location to get started.", Theme.TextMuted);
+                SetStatus("Add a location to get started.", AppTheme.TextMuted);
                 return;
             }
 
@@ -423,7 +423,7 @@ namespace WeatherApp.UI
             if (force) HttpService.ClearCache();
 
             _refreshButton.IsEnabled = false;
-            SetStatus("Refreshing " + location.DisplayName + "...", Theme.TextMuted);
+            SetStatus("Refreshing " + location.DisplayName + "...", AppTheme.TextMuted);
 
             try
             {
@@ -444,7 +444,7 @@ namespace WeatherApp.UI
 
                 int alertCount = snapshot.Alerts.Alerts.Count;
                 _alertsTab.Header = alertCount == 0 ? "Alerts" : "Alerts (" + alertCount + ")";
-                _alertsTab.Foreground = alertCount == 0 ? Theme.Text : Theme.Brush(Theme.DangerColor);
+                _alertsTab.Foreground = alertCount == 0 ? AppTheme.Text : AppTheme.Brush(AppTheme.DangerColor);
 
                 AnnounceNewWarnings(snapshot);
                 _settings.Save();
@@ -459,11 +459,11 @@ namespace WeatherApp.UI
                 if (snapshot.Warnings.Count > 0)
                 {
                     SetStatus(status + "  ·  " + string.Join("  ", snapshot.Warnings),
-                        Theme.Brush(Theme.WarningColor));
+                        AppTheme.Brush(AppTheme.WarningColor));
                 }
                 else
                 {
-                    SetStatus(status, Theme.TextMuted);
+                    SetStatus(status, AppTheme.TextMuted);
                 }
             }
             catch (OperationCanceledException)
@@ -471,7 +471,7 @@ namespace WeatherApp.UI
             }
             catch (WeatherServiceException ex)
             {
-                SetStatus(ex.Message, Theme.Brush(Theme.DangerColor));
+                SetStatus(ex.Message, AppTheme.Brush(AppTheme.DangerColor));
             }
             finally
             {

@@ -36,7 +36,7 @@ namespace WeatherApp.UI
             Height = 380;
             CanResize = false;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            Background = Theme.BackgroundBrush;
+            Background = AppTheme.BackgroundBrush;
 
             _searchBox = Widgets.Input(320);
             _searchBox.Watermark = "Town, ZIP code, or latitude and longitude";
@@ -53,18 +53,18 @@ namespace WeatherApp.UI
 
             _results = new ListBox
             {
-                Background = Theme.SurfaceBrush,
-                Foreground = Theme.Text,
-                FontFamily = Theme.UiFont,
-                FontSize = Theme.SizeBody,
-                BorderBrush = Theme.Brush(Theme.BorderColor),
+                Background = AppTheme.SurfaceBrush,
+                Foreground = AppTheme.Text,
+                FontFamily = AppTheme.UiFont,
+                FontSize = AppTheme.SizeBody,
+                BorderBrush = AppTheme.Brush(AppTheme.BorderColor),
                 BorderThickness = new Thickness(1)
             };
             _results.SelectionChanged += (s, e) => _addButton.IsEnabled = _results.SelectedIndex >= 0;
             _results.DoubleTapped += (s, e) => Accept();
 
             _hint = Widgets.Label(
-                "Places inside National Weather Service coverage are listed first.", Theme.TextFaint);
+                "Places inside National Weather Service coverage are listed first.", AppTheme.TextFaint);
 
             _addButton = Widgets.Button("Add", 100);
             _addButton.IsEnabled = false;
@@ -117,7 +117,7 @@ namespace WeatherApp.UI
             }
             _cancellation = new CancellationTokenSource();
 
-            _hint.Foreground = Theme.TextFaint;
+            _hint.Foreground = AppTheme.TextFaint;
             _hint.Text = "Searching...";
             _matches.Clear();
             _results.ItemsSource = null;
@@ -164,7 +164,7 @@ namespace WeatherApp.UI
             }
             catch (WeatherServiceException ex)
             {
-                _hint.Foreground = Theme.Brush(Theme.WarningColor);
+                _hint.Foreground = AppTheme.Brush(AppTheme.WarningColor);
                 _hint.Text = ex.Message;
             }
         }
