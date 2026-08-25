@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows.Forms;
 using WeatherApp.Configuration;
 using WeatherApp.Net;
+using WeatherApp.Platform;
 using WeatherApp.UI;
 
 namespace WeatherApp
@@ -36,7 +37,7 @@ namespace WeatherApp
         {
             try
             {
-                Directory.CreateDirectory(AppSettings.DirectoryPath);
+                AppPaths.EnsureDirectory();
 
                 if (File.Exists(AppSettings.EndpointsPath))
                 {
@@ -77,8 +78,8 @@ namespace WeatherApp
 
             try
             {
-                string logPath = Path.Combine(AppSettings.DirectoryPath, "error.log");
-                Directory.CreateDirectory(AppSettings.DirectoryPath);
+                string logPath = AppPaths.ErrorLogFile;
+                AppPaths.EnsureDirectory();
 
                 File.AppendAllText(logPath,
                     DateTime.Now.ToString("u") + Environment.NewLine

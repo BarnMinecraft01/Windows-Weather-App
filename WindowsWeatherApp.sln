@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.1000
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeatherApp", "src\WeatherApp\WeatherApp.csproj", "{6F2B4C31-9A47-4D5E-8B10-2C7E5A93D001}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeatherApp.WinForms", "src\WeatherApp.WinForms\WeatherApp.WinForms.csproj", "{6F2B4C31-9A47-4D5E-8B10-2C7E5A93D001}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -547,7 +547,9 @@ namespace WeatherApp.UI
         {
             try
             {
-                Process.Start(Endpoints.SpcUpperAirMaps);
+                // UseShellExecute must be set explicitly: it defaults to false on
+                // .NET Core, where passing a bare URL then throws.
+                Process.Start(new ProcessStartInfo(Endpoints.SpcUpperAirMaps) { UseShellExecute = true });
             }
             catch (System.ComponentModel.Win32Exception)
             {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -40,6 +41,7 @@ namespace WeatherApp.UI
         private readonly Timer _animationTimer;
 
         private RadarLoop _loop;
+        private readonly Dictionary<int, Image> _decoded = new Dictionary<int, Image>();
         private CancellationTokenSource _cancellation;
         private Region _region;
         private string _localStation;
@@ -209,13 +211,9 @@ namespace WeatherApp.UI
             try
             {
                 RadarLoop loop = await _radar.GetLoopAsync(entry.Code, token).ConfigureAwait(true);
-                if (token.IsCancellationRequested)
-                {
-                    loop.Dispose();
-                    return;
-                }
+                if (token.IsCancellationRequested) return;
 
-                if (_loop != null) _loop.Dispose();
+                DiscardDecodedFrames();
                 _loop = loop;
                 _loaded = true;
 
@@ -257,7 +255,7 @@ namespace WeatherApp.UI
             }
 
             int index = Math.Min(Math.Max(0, _frameBar.Value), _loop.Frames.Count - 1);
-            Image image = _loop.Frames[index].Image;
+            Image image = FrameImage(index);
             if (image == null) return;
 
             // Fit without cropping and without enlarging past 1:1; radar imagery is
@@ -280,6 +278,53 @@ namespace WeatherApp.UI
                              + (index == _loop.Frames.Count - 1 ? "  (latest)" : string.Empty);
             Theme.DrawText(g, caption, Theme.FontSmall, Theme.TextFaint,
                 new Rectangle(host.X + 8, host.Bottom - 20, host.Width - 16, 16), wrap: false);
+        }
+
+        /// <summary>
+        /// Decodes a frame to a GDI+ image, caching the result.
+        ///
+        /// The core now hands back raw bytes so that it stays free of System.Drawing,
+        /// which means decoding is this head's job. The cache matters: the animation
+        /// timer repaints several times a second and decoding a GIF on every paint
+        /// would be visible on the older hardware this build targets.
+        ///
+        /// The MemoryStream is deliberately left undisposed -- GDI+ reads from it
+        /// lazily for the lifetime of the Image, and closing it here would fault
+        /// later during painting. It holds no unmanaged handle.
+        /// </summary>
+        private Image FrameImage(int index)
+        {
+            if (_loop == null || index < 0 || index >= _loop.Frames.Count) return null;
+
+            Image cached;
+            if (_decoded.TryGetValue(index, out cached)) return cached;
+
+            byte[] data = _loop.Frames[index].Data;
+            if (data == null || data.Length == 0) return null;
+
+            try
+            {
+                Image image = Image.FromStream(new MemoryStream(data, false));
+                _decoded[index] = image;
+                return image;
+            }
+            catch (ArgumentException)
+            {
+                return null;      // not an image after all
+            }
+            catch (OutOfMemoryException)
+            {
+                return null;      // how GDI+ reports an unrecognised format
+            }
+        }
+
+        private void DiscardDecodedFrames()
+        {
+            foreach (Image image in _decoded.Values)
+            {
+                if (image != null) image.Dispose();
+            }
+            _decoded.Clear();
         }
 
         private void AdvanceFrame()
@@ -336,7 +381,9 @@ namespace WeatherApp.UI
 
             try
             {
-                Process.Start(url);
+                // UseShellExecute must be set explicitly: it defaults to false on
+                // .NET Core, where passing a bare URL then throws.
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             }
             catch (System.ComponentModel.Win32Exception)
             {
@@ -370,7 +417,7 @@ namespace WeatherApp.UI
                 CancelPending();
                 _animationTimer.Stop();
                 _animationTimer.Dispose();
-                if (_loop != null) _loop.Dispose();
+                DiscardDecodedFrames();
             }
             base.Dispose(disposing);
         }

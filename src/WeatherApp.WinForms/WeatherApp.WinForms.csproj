@@ -51,30 +51,18 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Configuration\AppSettings.cs" />
-    <Compile Include="Configuration\Endpoints.cs" />
-    <Compile Include="Configuration\RegionCatalog.cs" />
-    <Compile Include="Json\JsonParser.cs" />
-    <Compile Include="Json\JsonValue.cs" />
-    <Compile Include="Models\Conditions.cs" />
-    <Compile Include="Models\GeoLocation.cs" />
-    <Compile Include="Models\JetStream.cs" />
-    <Compile Include="Models\PrecipitationOutlook.cs" />
-    <Compile Include="Models\Region.cs" />
-    <Compile Include="Models\Units.cs" />
-    <Compile Include="Models\WeatherAlert.cs" />
-    <Compile Include="Models\WeatherCodes.cs" />
-    <Compile Include="Models\WeatherSnapshot.cs" />
-    <Compile Include="Net\HttpService.cs" />
+    <!-- The shared core is compiled straight into this head rather than
+         referenced as an assembly. A netstandard2.0 library would be the usual
+         answer, but .NET Framework 4.6.2 is missing ~200 of the APIs that
+         netstandard2.0 promises and needs binding redirects plus NuGet packages
+         to bridge the gap, which would cost this project its "builds from a
+         bare checkout with nothing but MSBuild" property. A source glob costs
+         nothing and avoids that entirely. -->
+    <Compile Include="..\WeatherApp.Core\**\*.cs">
+      <Link>Core\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Services\GeocodingClient.cs" />
-    <Compile Include="Services\GridSeries.cs" />
-    <Compile Include="Services\NwsClient.cs" />
-    <Compile Include="Services\OpenMeteoClient.cs" />
-    <Compile Include="Services\RadarService.cs" />
-    <Compile Include="Services\SpcClient.cs" />
-    <Compile Include="Services\WeatherAggregator.cs" />
     <Compile Include="UI\AlertsPanel.cs" />
     <Compile Include="UI\ForecastPanel.cs" />
     <Compile Include="UI\JetStreamPanel.cs" />
@@ -84,6 +72,7 @@
     <Compile Include="UI\PrecipitationPanel.cs" />
     <Compile Include="UI\RadarPanel.cs" />
     <Compile Include="UI\Theme.cs" />
+    <Compile Include="UI\TrayNotifier.cs" />
     <Compile Include="UI\WeatherPanel.cs" />
   </ItemGroup>
   <ItemGroup>

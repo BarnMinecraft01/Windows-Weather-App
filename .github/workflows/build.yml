@@ -26,6 +26,6 @@ jobs:
         with:
           name: WindowsWeather
           path: |
-            src/WeatherApp/bin/Release/WindowsWeather.exe
-            src/WeatherApp/bin/Release/WindowsWeather.exe.config
+            src/WeatherApp.WinForms/bin/Release/WindowsWeather.exe
+            src/WeatherApp.WinForms/bin/Release/WindowsWeather.exe.config
           if-no-files-found: error

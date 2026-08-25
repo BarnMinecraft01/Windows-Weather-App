@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Globalization;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using WeatherApp.Configuration;
@@ -10,26 +8,27 @@ using WeatherApp.Net;
 
 namespace WeatherApp.Services
 {
-    /// <summary>One downloaded radar frame.</summary>
-    public sealed class RadarFrame : IDisposable
+    /// <summary>
+    /// One downloaded radar frame, kept as the raw encoded bytes.
+    ///
+    /// Decoding deliberately does not happen here. System.Drawing is a
+    /// Windows-only library from .NET 6 onwards -- and the escape-hatch switch
+    /// that briefly re-enabled it elsewhere was removed in .NET 7 -- so a decoded
+    /// image in the shared core would be the single thing stopping this code from
+    /// compiling on macOS. Each UI head turns these bytes into its own native
+    /// image type instead.
+    /// </summary>
+    public sealed class RadarFrame
     {
-        public Image Image { get; set; }
+        /// <summary>The encoded GIF exactly as the server sent it.</summary>
+        public byte[] Data { get; set; }
 
         /// <summary>0 is the newest frame; higher numbers are further back.</summary>
         public int Index { get; set; }
-
-        public void Dispose()
-        {
-            if (Image != null)
-            {
-                Image.Dispose();
-                Image = null;
-            }
-        }
     }
 
     /// <summary>A radar loop: newest-last, ready to animate.</summary>
-    public sealed class RadarLoop : IDisposable
+    public sealed class RadarLoop
     {
         public RadarLoop()
         {
@@ -42,12 +41,6 @@ namespace WeatherApp.Services
 
         /// <summary>Set when only the pre-built animated GIF could be fetched.</summary>
         public bool IsAnimatedGif { get; set; }
-
-        public void Dispose()
-        {
-            foreach (RadarFrame frame in Frames) frame.Dispose();
-            Frames.Clear();
-        }
     }
 
     /// <summary>
@@ -95,10 +88,9 @@ namespace WeatherApp.Services
                         .GetBytesAsync(url, "image/gif", FrameTtl, cancellationToken)
                         .ConfigureAwait(false);
 
-                    Image image = DecodeImage(payload);
-                    if (image != null)
+                    if (LooksLikeImage(payload))
                     {
-                        loop.Frames.Add(new RadarFrame { Image = image, Index = index });
+                        loop.Frames.Add(new RadarFrame { Data = payload, Index = index });
                     }
                 }
                 catch (WeatherServiceException)
@@ -123,15 +115,14 @@ namespace WeatherApp.Services
                 .GetBytesAsync(url, "image/gif", FrameTtl, cancellationToken)
                 .ConfigureAwait(false);
 
-            Image image = DecodeImage(payload);
-            if (image == null)
+            if (!LooksLikeImage(payload))
             {
                 throw new WeatherServiceException(
                     "No radar imagery is available for " + sectorCode + " right now.");
             }
 
             loop.IsAnimatedGif = true;
-            loop.Frames.Add(new RadarFrame { Image = image, Index = 0 });
+            loop.Frames.Add(new RadarFrame { Data = payload, Index = 0 });
         }
 
         /// <summary>Link to the full interactive radar site for this sector.</summary>
@@ -141,32 +132,30 @@ namespace WeatherApp.Services
         }
 
         /// <summary>
-        /// Decodes downloaded bytes into an Image.
+        /// Cheap sniff for a real image, without decoding it.
         ///
-        /// The stream is deliberately kept alive for the lifetime of the Image:
-        /// GDI+ reads from it lazily, and disposing it here would fault later during
-        /// painting. The MemoryStream owns no unmanaged handles, so letting the
-        /// Image hold it is safe.
+        /// The failure this guards against is a 200 response carrying an HTML error
+        /// page instead of a GIF, which the servers here do occasionally return.
+        /// Checking the magic bytes catches that in the shared core, so neither UI
+        /// head has to handle a decode fault mid-paint.
         /// </summary>
-        private static Image DecodeImage(byte[] payload)
+        internal static bool LooksLikeImage(byte[] payload)
         {
-            if (payload == null || payload.Length == 0) return null;
+            if (payload == null || payload.Length < 8) return false;
 
-            try
+            // "GIF87a" / "GIF89a"
+            if (payload[0] == 'G' && payload[1] == 'I' && payload[2] == 'F') return true;
+
+            // PNG signature
+            if (payload[0] == 0x89 && payload[1] == 0x50 && payload[2] == 0x4E && payload[3] == 0x47)
             {
-                var stream = new MemoryStream(payload, false);
-                return Image.FromStream(stream);
+                return true;
             }
-            catch (ArgumentException)
-            {
-                // Not an image -- most often an HTML error page served with a 200.
-                return null;
-            }
-            catch (OutOfMemoryException)
-            {
-                // GDI+ reports an unrecognised image format this way.
-                return null;
-            }
+
+            // JPEG start-of-image
+            if (payload[0] == 0xFF && payload[1] == 0xD8) return true;
+
+            return false;
         }
     }
 }

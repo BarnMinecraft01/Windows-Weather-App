@@ -78,13 +78,20 @@ namespace WeatherApp.Net
         /// <summary>
         /// Adds TLS 1.2 (and 1.3 where the OS knows it) to the protocol list.
         ///
+        /// This exists purely for the .NET Framework head. Windows 7 and 8 negotiate
+        /// TLS 1.0 by default and every endpoint here refuses that. On .NET 6 and
+        /// later the whole ServicePointManager surface is obsolete and ignored by
+        /// SocketsHttpHandler, so the block is compiled out rather than left to
+        /// emit obsolescence warnings and do nothing.
+        ///
         /// The numeric literals avoid a compile-time dependency on enum members that
-        /// do not exist in every .NET Framework service release, and the whole thing
-        /// is wrapped because Windows 7 without the relevant update throws on the
+        /// do not exist in every .NET Framework service release, and each assignment
+        /// is guarded because Windows 7 without the relevant update throws on the
         /// TLS 1.3 value rather than ignoring it.
         /// </summary>
         private static void EnableModernTls()
         {
+#if NETFRAMEWORK
             const int Tls12 = 3072;
             const int Tls13 = 12288;
 
@@ -108,6 +115,7 @@ namespace WeatherApp.Net
 
             ServicePointManager.DefaultConnectionLimit = 12;
             ServicePointManager.Expect100Continue = false;
+#endif
         }
 
         public static void ClearCache()

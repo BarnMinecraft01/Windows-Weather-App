@@ -12,6 +12,7 @@ using WeatherApp.Models;
 // System.Drawing also defines a Region; this file means the geographic one.
 using Region = WeatherApp.Models.Region;
 using WeatherApp.Net;
+using WeatherApp.Platform;
 using WeatherApp.Services;
 
 namespace WeatherApp.UI
@@ -48,7 +49,7 @@ namespace WeatherApp.UI
         private readonly AlertsPanel _alertsPanel = new AlertsPanel();
 
         private readonly Timer _refreshTimer = new Timer();
-        private readonly NotifyIcon _notifyIcon;
+        private readonly TrayNotifier _notifier = new TrayNotifier();
 
         private CancellationTokenSource _cancellation;
         private bool _suppressEvents;
@@ -165,13 +166,6 @@ namespace WeatherApp.UI
                 _settings.Save();
             };
 
-            _notifyIcon = new NotifyIcon
-            {
-                Icon = SystemIcons.Information,
-                Visible = false,
-                Text = "Windows Weather"
-            };
-
             _refreshTimer.Interval = Math.Max(5, settings.AutoRefreshMinutes) * 60 * 1000;
             _refreshTimer.Tick += async (s, e) => await RefreshAsync(force: false).ConfigureAwait(true);
 
@@ -252,7 +246,6 @@ namespace WeatherApp.UI
         {
             CancelPending();
             _refreshTimer.Stop();
-            _notifyIcon.Visible = false;
 
             _settings.RegionId = CurrentRegion.Id;
             _settings.UseMetric = _metricBox.Checked;
@@ -561,14 +554,11 @@ namespace WeatherApp.UI
 
             WeatherAlert lead = fresh.OrderBy(a => a.Priority).First();
 
-            _notifyIcon.Visible = true;
-            _notifyIcon.BalloonTipIcon = ToolTipIcon.Warning;
-            _notifyIcon.BalloonTipTitle = lead.Event ?? "Weather warning";
-            _notifyIcon.BalloonTipText = fresh.Count == 1
+            string message = fresh.Count == 1
                 ? (lead.AreaDescription ?? snapshot.Alerts.ScopeDescription ?? string.Empty)
                 : fresh.Count + " new warnings are in effect. Open the Alerts tab for details.";
 
-            _notifyIcon.ShowBalloonTip(10000);
+            _notifier.Notify(lead.Event ?? "Weather warning", message, urgent: true);
         }
 
         private void SetStatus(string text, Color color)
@@ -631,7 +621,7 @@ namespace WeatherApp.UI
             {
                 CancelPending();
                 _refreshTimer.Dispose();
-                _notifyIcon.Dispose();
+                _notifier.Dispose();
             }
             base.Dispose(disposing);
         }

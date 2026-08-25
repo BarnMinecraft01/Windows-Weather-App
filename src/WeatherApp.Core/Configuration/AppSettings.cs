@@ -5,6 +5,7 @@ using System.IO;
 using System.Text;
 using WeatherApp.Json;
 using WeatherApp.Models;
+using WeatherApp.Platform;
 
 namespace WeatherApp.Configuration
 {
@@ -68,23 +69,21 @@ namespace WeatherApp.Configuration
 
         // ---- Storage ---------------------------------------------------------
 
+        // Resolved per platform; see WeatherApp.Platform.AppPaths for why these are
+        // not simply SpecialFolder.ApplicationData on every OS.
         public static string DirectoryPath
         {
-            get
-            {
-                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                return Path.Combine(appData, "WindowsWeatherApp");
-            }
+            get { return AppPaths.SettingsDirectory; }
         }
 
         public static string SettingsPath
         {
-            get { return Path.Combine(DirectoryPath, "settings.json"); }
+            get { return AppPaths.SettingsFile; }
         }
 
         public static string EndpointsPath
         {
-            get { return Path.Combine(DirectoryPath, "endpoints.json"); }
+            get { return AppPaths.EndpointsFile; }
         }
 
         public static AppSettings Load()
@@ -157,7 +156,7 @@ namespace WeatherApp.Configuration
         {
             try
             {
-                Directory.CreateDirectory(DirectoryPath);
+                AppPaths.EnsureDirectory();
 
                 var builder = new StringBuilder();
                 builder.AppendLine("{");
