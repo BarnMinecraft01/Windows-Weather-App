@@ -1,7 +1,7 @@
 # Windows Weather
 
-A desktop weather app for **Windows 7 SP1 → 11** and **macOS** that shows the
-things most weather apps stopped showing: the jet stream, animated radar you can
+A weather app for **Windows 7 SP1 → 11**, **macOS**, **Linux** and **Android**
+that shows the things most weather apps stopped showing: the jet stream, animated radar you can
 pause, precipitation split by type, a ten-day forecast with the forecast office's
 own wording, and the full text of every active NWS alert.
 
@@ -38,25 +38,48 @@ and alerts can be scoped to just that point or to the whole region.
 
 ## Repository layout
 
-The app is one shared core with two UI heads. No mainstream stack covers Windows
-7 *and* macOS from a single binary — .NET 5+ dropped Windows 7, and Avalonia 12
-dropped .NET Framework — so the platform-specific part is the UI and nothing else.
+The app is one shared engine with three UI heads. No mainstream stack covers
+Windows 7 *and* everything else from a single binary — .NET 5+ dropped Windows 7,
+and Avalonia 12 dropped .NET Framework — so the platform-specific part is the UI
+and nothing else.
 
 ```
-src/WeatherApp.Core/       Json, Net, Configuration, Models, Services, Platform
-src/WeatherApp.WinForms/   .NET Framework 4.6.2 + WinForms   → Windows 7–11
-src/WeatherApp.Desktop/        .NET 10 + Avalonia 12             → macOS (and Linux)
-packaging/macos/           Info.plist and the .app build script
+src/WeatherApp.Core/            the engine: Json, Net, Configuration, Models,
+                                Services, Platform. No UI, no OS dependencies.
+src/WeatherApp.AvaloniaShared/  palette, widgets and the two renderers the
+                                Avalonia heads must not diverge on
+src/WeatherApp.WinForms/        .NET Framework 4.6.2 + WinForms  → Windows 7–11
+src/WeatherApp.Desktop/         .NET 10 + Avalonia 12            → macOS, Linux
+src/WeatherApp.Android/         .NET 10 + Avalonia 12            → Android 5+
+packaging/                      icon generator, .app and Linux build scripts
 ```
+
+| Platform | Head | Packaging |
+|---|---|---|
+| Windows 7 / 8 / 8.1 / 10 / 11 | WinForms | single `.exe`, no installer |
+| macOS 14+ (Intel & Apple silicon) | Avalonia Desktop | `.app` bundle, per-arch or universal |
+| Linux (x64, arm64) | Avalonia Desktop | self-contained tarball, AppImage |
+| Android 5.0+ | Avalonia Android | APK |
+
+There is deliberately **no browser build** — see
+[docs/why-no-browser-build.md](docs/why-no-browser-build.md). It is not a gap
+waiting to be filled; `api.weather.gov` sends no CORS headers, so a WebAssembly
+build could not fetch a single weather alert.
 
 The core is **shared by source glob, not as a `netstandard2.0` assembly.** .NET
 Framework 4.6.2 is missing around 200 of the APIs `netstandard2.0` promises and
 needs binding redirects plus NuGet packages to bridge them, which would cost the
 Windows head its "builds from a bare checkout with nothing but MSBuild" property.
 
-Roughly 4,200 lines of core are shared verbatim; each head is its own UI. The
-two heads draw from identical layout arithmetic, so the same forecast renders
-the same way on both.
+Roughly 4,300 lines of engine are shared verbatim by all three heads. Adding a
+platform means adding a head, not forking the engine.
+
+The Android head is **not** a port of the desktop one. A nine-column
+precipitation table and a six-tab layout do not survive a narrow screen, so the
+phone has four bottom-bar destinations and the precipitation breakdown lives
+inside expandable forecast rows. What the two Avalonia heads *do* share is the
+drawing that must not diverge — the jet stream map and the hourly chart are
+rendered by the same code on both.
 
 ---
 
@@ -94,8 +117,30 @@ xattr -dr com.apple.quarantine "Windows Weather.app"
 > The app is named "Windows Weather" on macOS too, inherited from the Windows
 > original. Renaming it is a one-line change in `packaging/macos/Info.plist`.
 
-Settings live in `~/Library/Application Support/WindowsWeatherApp/` on macOS and
-`%APPDATA%\WindowsWeatherApp\` on Windows.
+### Linux
+
+Download the tarball, unpack it and run `WindowsWeather` — it is self-contained
+and carries its own .NET runtime. The AppImage, when present, runs the same way
+without unpacking.
+
+Avalonia needs the usual desktop X11/Wayland libraries present (`libX11`,
+`libICE`, `libSM`, `fontconfig`). Any normal desktop install already has them; a
+minimal container may not.
+
+### Android
+
+Install the APK from the build artifacts. It needs Android 5.0 or later and asks
+for one permission: internet access. There is deliberately no location
+permission — you choose your places explicitly rather than being geolocated.
+
+### Where settings live
+
+| Platform | Path |
+|---|---|
+| Windows | `%APPDATA%\WindowsWeatherApp\` |
+| macOS | `~/Library/Application Support/WindowsWeatherApp/` |
+| Linux | `$XDG_CONFIG_HOME/WindowsWeatherApp/`, else `~/.config/WindowsWeatherApp/` |
+| Android | the app's private files directory |
 
 ---
 
@@ -123,11 +168,28 @@ output is a single `WindowsWeather.exe` in `src/WeatherApp.WinForms/bin/Release/
 ```bash
 dotnet build src/WeatherApp.Desktop/WeatherApp.Desktop.csproj -c Release
 
-# or build a runnable .app bundle:
+# macOS: build a runnable .app bundle
 ./packaging/macos/build-app.sh                 # host architecture
 ./packaging/macos/build-app.sh --arch osx-x64  # Intel
 ./packaging/macos/build-app.sh --universal     # one binary for both
+
+# Linux: build a tarball and (where possible) an AppImage
+./packaging/linux/build-linux.sh                     # host architecture
+./packaging/linux/build-linux.sh --arch linux-arm64
 ```
+
+### Android head
+
+```bash
+dotnet workload install android
+dotnet build src/WeatherApp.Android/WeatherApp.Android.csproj -c Release
+```
+
+Release builds are unsigned without a keystore. For a device build, either use a
+Debug build (which is signed with the debug key) or supply your own keystore
+through the standard `AndroidSigningKeyStore` properties.
+
+### macOS packaging modes
 
 The two packaging modes trade off against each other. **Per-architecture**
 publishes normally, so every native dependency (Skia, HarfBuzz, the Avalonia
@@ -252,8 +314,13 @@ Errors are written to `error.log` beside the settings file.
   alerts. A real system notification needs a signed, bundled app and would
   silently do nothing in an unsigned development build — a worse failure than a
   toast the user can definitely see.
-- **The macOS head also builds and runs on Linux** (Avalonia supports it), but
-  that is untested and unpackaged here.
+- **Android warning notifications are in-window toasts**, not Notification
+  Center entries. One that works while the app is closed needs a notification
+  channel plus a foreground service or WorkManager job to poll for alerts, which
+  is real Android work rather than a UI detail; until then a toast at least
+  cannot fail silently.
+- **The Linux AppImage is best-effort.** appimagetool needs FUSE, which many
+  containers lack, so the self-contained tarball is the guaranteed artifact.
 
 ---
 
