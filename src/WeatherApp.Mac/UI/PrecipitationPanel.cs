@@ -64,10 +64,8 @@ namespace WeatherApp.UI
             };
         }
 
-        public override void Render(DrawingContext context)
+        protected override void DrawSurface(DrawingContext context)
         {
-            base.Render(context);
-
             if (Snapshot == null || Snapshot.Precipitation.Days.Count == 0)
             {
                 DrawPlaceholder(context, "No precipitation outlook available.");

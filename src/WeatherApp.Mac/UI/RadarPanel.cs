@@ -181,7 +181,7 @@ namespace WeatherApp.UI
                     : entry.Title + " -- " + loop.Frames.Count + " frames, updated "
                       + loop.RetrievedAt.ToString("h:mm tt"), false);
 
-                InvalidateVisual();
+                InvalidateSurface();
                 if (loop.Frames.Count > 1) StartPlayback();
             }
             catch (OperationCanceledException)
@@ -191,7 +191,7 @@ namespace WeatherApp.UI
             catch (WeatherServiceException ex)
             {
                 SetStatus(ex.Message, true);
-                InvalidateVisual();
+                InvalidateSurface();
             }
         }
 
@@ -199,7 +199,7 @@ namespace WeatherApp.UI
         {
             _status = text;
             _statusIsError = isError;
-            InvalidateVisual();
+            InvalidateSurface();
         }
 
         /// <summary>
@@ -256,7 +256,7 @@ namespace WeatherApp.UI
             _timer.Interval = TimeSpan.FromMilliseconds(
                 _frame == _loop.Frames.Count - 1 ? LastFrameDelayMs : FrameDelayMs);
 
-            InvalidateVisual();
+            InvalidateSurface();
         }
 
         private void TogglePlayback()
@@ -291,15 +291,13 @@ namespace WeatherApp.UI
             if (frame == _frame) return;
 
             _frame = frame;
-            InvalidateVisual();
+            InvalidateSurface();
         }
 
         // ---- rendering -------------------------------------------------------
 
-        public override void Render(DrawingContext context)
+        protected override void DrawSurface(DrawingContext context)
         {
-            base.Render(context);
-
             var status = new Rect(Gutter, ToolbarHeight + 4, Math.Max(10, W - Gutter * 2), StatusHeight);
             Theme.DrawLineText(context, _status, Theme.Regular, Theme.SizeSmall,
                 _statusIsError ? Theme.Brush(Theme.WarningColor) : Theme.TextMuted, status);

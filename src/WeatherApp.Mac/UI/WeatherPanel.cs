@@ -21,6 +21,8 @@ namespace WeatherApp.UI
     {
         protected WeatherSnapshot Snapshot { get; private set; }
 
+        private readonly Surface _surface;
+
         protected WeatherPanel()
         {
             Background = Theme.BackgroundBrush;
@@ -28,11 +30,44 @@ namespace WeatherApp.UI
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Stretch;
 
+            // Avalonia seals Panel.Render, so a Canvas cannot draw its own content.
+            // The custom painting therefore lives on a plain Control that fills the
+            // panel and delegates back to DrawSurface. It goes in first so it sits
+            // behind the real child controls, and it is hit-test invisible so
+            // pointer events fall through to the panel that handles them.
+            _surface = new Surface(this) { IsHitTestVisible = false };
+            Children.Add(_surface);
+
             SizeChanged += (s, e) =>
             {
+                Place(_surface, 0, 0, Bounds.Width, Bounds.Height);
                 LayoutChildren();
-                InvalidateVisual();
+                InvalidateSurface();
             };
+        }
+
+        /// <summary>Repaints the drawn content. The Canvas itself has nothing to repaint.</summary>
+        public void InvalidateSurface()
+        {
+            _surface.InvalidateVisual();
+        }
+
+        /// <summary>Draws this panel's content. The counterpart of OnPaint in the WinForms head.</summary>
+        protected abstract void DrawSurface(DrawingContext context);
+
+        private sealed class Surface : Control
+        {
+            private readonly WeatherPanel _owner;
+
+            public Surface(WeatherPanel owner)
+            {
+                _owner = owner;
+            }
+
+            public override void Render(DrawingContext context)
+            {
+                _owner.DrawSurface(context);
+            }
         }
 
         public double W { get { return Bounds.Width; } }
@@ -43,7 +78,7 @@ namespace WeatherApp.UI
             Snapshot = snapshot;
             OnSnapshotChanged();
             LayoutChildren();
-            InvalidateVisual();
+            InvalidateSurface();
         }
 
         /// <summary>Hook for panels that rebuild child controls when new data lands.</summary>

@@ -46,7 +46,7 @@ namespace WeatherApp.UI
 
                 _selectedIndex = index;
                 ShowDetail();
-                InvalidateVisual();
+                InvalidateSurface();
             };
 
             PointerMoved += (s, e) =>
@@ -55,7 +55,7 @@ namespace WeatherApp.UI
                 if (index == _hoverIndex) return;
 
                 _hoverIndex = index;
-                InvalidateVisual();
+                InvalidateSurface();
             };
 
             PointerExited += (s, e) =>
@@ -63,7 +63,7 @@ namespace WeatherApp.UI
                 if (_hoverIndex == -1) return;
 
                 _hoverIndex = -1;
-                InvalidateVisual();
+                InvalidateSurface();
             };
 
             // The list can outrun its column when a whole region is in play.
@@ -73,7 +73,7 @@ namespace WeatherApp.UI
 
                 double maxOffset = Math.Max(0, _alerts.Count * RowHeight - ListBounds().Height);
                 _scrollOffset = Math.Min(maxOffset, Math.Max(0, _scrollOffset - e.Delta.Y * RowHeight));
-                InvalidateVisual();
+                InvalidateSurface();
             };
         }
 
@@ -107,10 +107,8 @@ namespace WeatherApp.UI
             Place(_detail, left, list.Y, Math.Max(60, W - left - Gutter), list.Height);
         }
 
-        public override void Render(DrawingContext context)
+        protected override void DrawSurface(DrawingContext context)
         {
-            base.Render(context);
-
             DrawSummary(context);
 
             Rect list = ListBounds();

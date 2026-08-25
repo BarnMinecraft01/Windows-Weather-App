@@ -399,10 +399,10 @@ namespace WeatherApp.UI
             _settings.Save();
 
             // Units are a formatting concern only; no refetch is needed.
-            _nowPanel.InvalidateVisual();
-            _forecastPanel.InvalidateVisual();
-            _precipitationPanel.InvalidateVisual();
-            _alertsPanel.InvalidateVisual();
+            _nowPanel.InvalidateSurface();
+            _forecastPanel.InvalidateSurface();
+            _precipitationPanel.InvalidateSurface();
+            _alertsPanel.InvalidateSurface();
         }
 
         // ---- refresh ---------------------------------------------------------

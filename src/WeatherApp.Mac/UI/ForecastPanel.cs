@@ -31,7 +31,7 @@ namespace WeatherApp.UI
                 if (index == _hoverIndex) return;
 
                 _hoverIndex = index;
-                InvalidateVisual();
+                InvalidateSurface();
             };
 
             PointerExited += (s, e) =>
@@ -39,7 +39,7 @@ namespace WeatherApp.UI
                 if (_hoverIndex == -1) return;
 
                 _hoverIndex = -1;
-                InvalidateVisual();
+                InvalidateSurface();
             };
 
             PointerPressed += (s, e) =>
@@ -48,7 +48,7 @@ namespace WeatherApp.UI
                 if (index < 0 || index == _selectedIndex) return;
 
                 _selectedIndex = index;
-                InvalidateVisual();
+                InvalidateSurface();
             };
         }
 
@@ -58,10 +58,8 @@ namespace WeatherApp.UI
             _hoverIndex = -1;
         }
 
-        public override void Render(DrawingContext context)
+        protected override void DrawSurface(DrawingContext context)
         {
-            base.Render(context);
-
             if (Snapshot == null || Snapshot.Days.Count == 0)
             {
                 DrawPlaceholder(context, "No forecast available.");

@@ -18,10 +18,8 @@ namespace WeatherApp.UI
         private const double HeaderHeight = 190;
         private const double ChartHeight = 220;
 
-        public override void Render(DrawingContext context)
+        protected override void DrawSurface(DrawingContext context)
         {
-            base.Render(context);
-
             if (Snapshot == null)
             {
                 DrawPlaceholder(context, "Loading conditions...");

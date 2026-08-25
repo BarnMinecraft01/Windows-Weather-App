@@ -141,7 +141,7 @@ namespace WeatherApp.UI
                 if (IsEffectivelyVisible) BeginLoad(false);
             }
 
-            InvalidateVisual();
+            InvalidateSurface();
         }
 
         public override void OnActivated()
@@ -203,15 +203,13 @@ namespace WeatherApp.UI
         {
             _status = text;
             _statusIsError = isError;
-            InvalidateVisual();
+            InvalidateSurface();
         }
 
         // ---- rendering -------------------------------------------------------
 
-        public override void Render(DrawingContext context)
+        protected override void DrawSurface(DrawingContext context)
         {
-            base.Render(context);
-
             var status = new Rect(Gutter, ToolbarHeight + 4, Math.Max(10, W - Gutter * 2), StatusHeight);
             Theme.DrawLineText(context, _status, Theme.Regular, Theme.SizeSmall,
                 _statusIsError ? Theme.Brush(Theme.WarningColor) : Theme.TextMuted, status);
