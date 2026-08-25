@@ -1,6 +1,15 @@
 using System;
 using System.IO;
 
+// The platform guards in this file and in Net/HttpService.cs select behaviour at
+// compile time, so a head that defines neither symbol would silently compile the
+// wrong branch out rather than fail. SDK-style projects define these implicitly;
+// the classic WinForms csproj has to declare NETFRAMEWORK by hand, and this turns
+// forgetting that into a build error instead of a Windows 7 TLS regression.
+#if !NETFRAMEWORK && !NET
+#error Neither NETFRAMEWORK nor NET is defined. Add NETFRAMEWORK to DefineConstants for the .NET Framework head.
+#endif
+
 namespace WeatherApp.Platform
 {
     /// <summary>
