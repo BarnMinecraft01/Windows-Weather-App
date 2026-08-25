@@ -50,7 +50,7 @@ src/WeatherApp.AvaloniaShared/  palette, widgets and the two renderers the
                                 Avalonia heads must not diverge on
 src/WeatherApp.WinForms/        .NET Framework 4.6.2 + WinForms  → Windows 7–11
 src/WeatherApp.Desktop/         .NET 10 + Avalonia 12            → macOS, Linux
-src/WeatherApp.Android/         .NET 10 + Avalonia 12            → Android 5+
+src/WeatherApp.Android/         .NET 10 + Avalonia 12            → Android 6+
 packaging/                      icon generator, .app and Linux build scripts
 ```
 
@@ -59,7 +59,7 @@ packaging/                      icon generator, .app and Linux build scripts
 | Windows 7 / 8 / 8.1 / 10 / 11 | WinForms | single `.exe`, no installer |
 | macOS 14+ (Intel & Apple silicon) | Avalonia Desktop | `.app` bundle, per-arch or universal |
 | Linux (x64, arm64) | Avalonia Desktop | self-contained tarball, AppImage |
-| Android 5.0+ | Avalonia Android | APK |
+|  Android 6.0+ | Avalonia Android | APK |
 
 There is deliberately **no browser build** — see
 [docs/why-no-browser-build.md](docs/why-no-browser-build.md). It is not a gap
@@ -129,7 +129,7 @@ minimal container may not.
 
 ### Android
 
-Install the APK from the build artifacts. It needs Android 5.0 or later and asks
+Install the APK from the build artifacts. It needs Android 6.0 or later and asks
 for one permission: internet access. There is deliberately no location
 permission — you choose your places explicitly rather than being geolocated.
 
