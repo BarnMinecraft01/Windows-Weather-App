@@ -120,14 +120,35 @@ namespace WeatherApp.UI
         }
 
         /// <summary>
-        /// Opens a URL in the user's browser.
+        /// Opens a URL outside the app.
         ///
-        /// UseShellExecute must be set explicitly: it defaults to false on .NET,
-        /// where a bare URL then throws. With it set, macOS routes through `open`
-        /// and Windows through the shell handler.
+        /// Prefers Avalonia's launcher, which is the only route that works on
+        /// Android -- there is no process to start there, the platform expects an
+        /// Intent. Falls back to the shell on desktop, where UseShellExecute has
+        /// to be set explicitly because it defaults to false on .NET and a bare
+        /// URL then throws.
         /// </summary>
-        public static bool OpenUrl(string url)
+        public static bool OpenUrl(string url, Control owner = null)
         {
+            if (owner != null)
+            {
+                try
+                {
+                    TopLevel topLevel = TopLevel.GetTopLevel(owner);
+                    if (topLevel != null)
+                    {
+                        // Fire and forget: the launcher hands off to the OS and the
+                        // result tells us nothing the user cannot already see.
+                        _ = topLevel.Launcher.LaunchUriAsync(new Uri(url));
+                        return true;
+                    }
+                }
+                catch (Exception)
+                {
+                    // Fall through to the desktop path below.
+                }
+            }
+
             try
             {
                 System.Diagnostics.Process.Start(

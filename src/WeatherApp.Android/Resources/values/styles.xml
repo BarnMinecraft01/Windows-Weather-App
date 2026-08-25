@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Avalonia draws the entire surface itself, so the activity wants no action
+       bar and no title. The dark window background stops a white flash between
+       the activity starting and the first Avalonia frame. -->
+  <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
+    <item name="android:windowBackground">@color/window_background</item>
+    <item name="android:colorBackground">@color/window_background</item>
+  </style>
+</resources>

@@ -4,6 +4,7 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Media;
 using WeatherApp.Models;
+using WeatherApp.UI.Rendering;
 
 namespace WeatherApp.UI
 {
@@ -118,7 +119,7 @@ namespace WeatherApp.UI
             AppTheme.DrawLineText(context, "NEXT 24 HOURS", AppTheme.Bold, AppTheme.SizeSmall, AppTheme.TextMuted,
                 new Rect(inner.X, inner.Y, inner.Width, 18), middle: false);
 
-            List<HourlyPoint> hours = UpcomingHours(24);
+            List<HourlyPoint> hours = HourlyChartRenderer.Upcoming(Snapshot, 24);
             if (hours.Count < 2)
             {
                 AppTheme.DrawText(context, "Hourly data is unavailable.", AppTheme.Regular, AppTheme.SizeBody,
@@ -129,109 +130,9 @@ namespace WeatherApp.UI
             var plot = new Rect(inner.X, inner.Y + 26, inner.Width, inner.Height - 50);
             if (plot.Width <= 10 || plot.Height <= 20) return;
 
-            double columnWidth = plot.Width / hours.Count;
-
-            // Probability bars occupy the lower 40% so the temperature line stays readable.
-            double barZoneTop = plot.Y + plot.Height * 0.60;
-            double barZoneHeight = plot.Bottom - barZoneTop;
-
-            for (int i = 0; i < hours.Count; i++)
-            {
-                HourlyPoint hour = hours[i];
-                double probability = hour.PrecipitationProbability ?? 0d;
-                if (probability <= 0) continue;
-
-                double barHeight = Math.Max(2, barZoneHeight * Math.Min(probability, 100d) / 100d);
-
-                Color color = AppTheme.RainColor;
-                if ((hour.SnowfallInches ?? 0) > 0.01 || WeatherCodes.IsSnow(hour.WeatherCode))
-                {
-                    color = AppTheme.SnowColor;
-                }
-                else if (WeatherCodes.IsFreezing(hour.WeatherCode)) color = AppTheme.IceColor;
-                else if (hour.IsThunder) color = AppTheme.ThunderColor;
-
-                var bar = new Rect(
-                    plot.X + i * columnWidth + 1,
-                    plot.Bottom - barHeight,
-                    Math.Max(2, columnWidth - 2),
-                    barHeight);
-
-                context.DrawRectangle(AppTheme.Brush(color, 190), null, bar);
-            }
-
-            DrawTemperatureLine(context, plot, hours, columnWidth, barZoneTop);
-            DrawHourLabels(context, plot, hours, columnWidth);
-        }
-
-        private static void DrawTemperatureLine(DrawingContext context, Rect plot,
-            List<HourlyPoint> hours, double columnWidth, double lineZoneBottom)
-        {
-            var temperatures = hours
-                .Where(h => h.TemperatureF.HasValue)
-                .Select(h => h.TemperatureF.Value)
-                .ToList();
-
-            if (temperatures.Count < 2) return;
-
-            double min = temperatures.Min();
-            double max = temperatures.Max();
-            double span = Math.Max(1d, max - min);
-
-            double lineZoneTop = plot.Y + 16;
-            double lineZoneHeight = Math.Max(10, lineZoneBottom - lineZoneTop - 8);
-
-            var points = new List<Point>();
-            for (int i = 0; i < hours.Count; i++)
-            {
-                if (!hours[i].TemperatureF.HasValue) continue;
-
-                double x = plot.X + i * columnWidth + columnWidth / 2d;
-                double y = lineZoneTop + lineZoneHeight * (1d - (hours[i].TemperatureF.Value - min) / span);
-                points.Add(new Point(x, y));
-            }
-
-            if (points.Count < 2) return;
-
-            // Avalonia has no polyline primitive on DrawingContext; successive
-            // segments are equivalent here and avoid building a geometry per frame.
-            var pen = new Pen(AppTheme.Accent, 2, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
-            for (int i = 1; i < points.Count; i++)
-            {
-                context.DrawLine(pen, points[i - 1], points[i]);
-            }
-
-            // Label only the extremes; every hour is unreadable at this size.
-            int hottest = temperatures.IndexOf(max);
-            int coldest = temperatures.IndexOf(min);
-
-            LabelPoint(context, points, hottest, max);
-            if (coldest != hottest) LabelPoint(context, points, coldest, min);
-        }
-
-        private static void LabelPoint(DrawingContext context, List<Point> points, int index, double value)
-        {
-            if (index < 0 || index >= points.Count) return;
-
-            Point point = points[index];
-            AppTheme.DrawLineText(context, Units.FormatTemperature(value), AppTheme.Bold, AppTheme.SizeSmall,
-                AppTheme.Text, new Rect(point.X - 26, point.Y - 24, 52, 18), TextAlignment.Center);
-        }
-
-        private static void DrawHourLabels(DrawingContext context, Rect plot,
-            List<HourlyPoint> hours, double columnWidth)
-        {
-            // A label every few hours keeps the axis legible at any window width.
-            int step = Math.Max(1, (int)Math.Ceiling(58d / Math.Max(1d, columnWidth)));
-
-            for (int i = 0; i < hours.Count; i += step)
-            {
-                var bounds = new Rect(
-                    plot.X + i * columnWidth - 16, plot.Bottom + 4, columnWidth + 32, 18);
-
-                AppTheme.DrawLineText(context, hours[i].Time.ToString("htt").ToLowerInvariant(),
-                    AppTheme.Regular, AppTheme.SizeSmall, AppTheme.TextFaint, bounds, TextAlignment.Center);
-            }
+            // Bars, temperature line and hour labels come from the shared renderer,
+            // so this chart is identical on desktop and on a phone.
+            HourlyChartRenderer.Draw(context, plot, hours);
         }
 
         private void DrawDetails(DrawingContext context, Rect bounds)
@@ -287,22 +188,6 @@ namespace WeatherApp.UI
                 AppTheme.DrawLineText(context, entries[i].Value, AppTheme.Bold, AppTheme.SizeBody,
                     AppTheme.Text, new Rect(x, y + 18, columnWidth - 12, 22));
             }
-        }
-
-        /// <summary>The next N hours from now, at the forecast location's own clock.</summary>
-        private List<HourlyPoint> UpcomingHours(int count)
-        {
-            if (Snapshot == null) return new List<HourlyPoint>();
-
-            DateTime reference = Snapshot.Current != null
-                ? Snapshot.Current.ObservedAt.AddHours(-1)
-                : DateTime.Now.AddHours(-1);
-
-            return Snapshot.Hours
-                .Where(h => h.Time >= reference)
-                .OrderBy(h => h.Time)
-                .Take(count)
-                .ToList();
         }
     }
 }

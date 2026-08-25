@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- The only permission the app needs. Everything it shows comes from public
+       weather services over HTTPS; there is no location permission because the
+       user picks their places explicitly rather than being geolocated. -->
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+  <application android:label="Windows Weather"
+               android:icon="@drawable/icon"
+               android:supportsRtl="true" />
+</manifest>

@@ -158,6 +158,24 @@ namespace WeatherApp.UI
             return formatted;
         }
 
+        /// <summary>
+        /// Measures text wrapped to a given width.
+        ///
+        /// Needed by scrolling screens that draw rather than lay out their content:
+        /// they have to know how tall a block of text will be before they can bound
+        /// the scroll, and NWS warning text varies far too much to guess.
+        /// </summary>
+        public static Size MeasureWrapped(string text, Typeface typeface, double size, double maxWidth)
+        {
+            if (string.IsNullOrEmpty(text) || maxWidth <= 1) return new Size(0, 0);
+
+            var formatted = new FormattedText(
+                text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, typeface, size, Text);
+            formatted.MaxTextWidth = maxWidth;
+
+            return new Size(formatted.Width, formatted.Height);
+        }
+
         /// <summary>Measures a single line, for layouts that need the width up front.</summary>
         public static Size MeasureText(string text, Typeface typeface, double size)
         {

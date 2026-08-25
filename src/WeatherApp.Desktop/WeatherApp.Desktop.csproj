@@ -31,6 +31,13 @@
     <Compile Include="..\WeatherApp.Core\**\*.cs">
       <Link>Core\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Compile>
+
+    <!-- Avalonia code shared with the Android head: the palette, the widget
+         factories, the panel base and the two renderers that must not diverge
+         between a desktop window and a phone screen. -->
+    <Compile Include="..\WeatherApp.AvaloniaShared\**\*.cs">
+      <Link>Shared\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Compile>
   </ItemGroup>
 
 </Project>

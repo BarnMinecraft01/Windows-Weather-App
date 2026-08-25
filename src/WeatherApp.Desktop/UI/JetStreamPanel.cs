@@ -9,6 +9,7 @@ using WeatherApp.Configuration;
 using WeatherApp.Models;
 using WeatherApp.Net;
 using WeatherApp.Services;
+using WeatherApp.UI.Rendering;
 using Region = WeatherApp.Models.Region;
 
 namespace WeatherApp.UI
@@ -30,7 +31,6 @@ namespace WeatherApp.UI
         private const double Gutter = 16;
         private const double ToolbarHeight = 44;
         private const double StatusHeight = 22;
-        private const double LegendHeight = 28;
 
         private readonly OpenMeteoClient _client = new OpenMeteoClient();
         private readonly ComboBox _levelBox;
@@ -83,7 +83,7 @@ namespace WeatherApp.UI
             _chartsButton = Widgets.Button("Official charts", 130);
             _chartsButton.Click += (s, e) =>
             {
-                if (!Widgets.OpenUrl(Endpoints.SpcUpperAirMaps))
+                if (!Widgets.OpenUrl(Endpoints.SpcUpperAirMaps, this))
                 {
                     SetStatus("Could not open a browser. Charts are at " + Endpoints.SpcUpperAirMaps, true);
                 }
@@ -226,296 +226,19 @@ namespace WeatherApp.UI
                 return;
             }
 
-            Rect map = MapBounds(host);
-            if (map.Width < 40 || map.Height < 40) return;
-
-            using (context.PushClip(map))
-            {
-                DrawSpeedField(context, map);
-            }
-
-            DrawGraticule(context, map);
-            DrawWindArrows(context, map);
-            DrawPlaces(context, map);
-            DrawJetCoreCallout(context, map);
-            DrawLegend(context, host);
+            // The map itself is drawn by the shared renderer, so the desktop and
+            // phone heads cannot drift apart about where the jet is.
+            JetStreamRenderer.Draw(context, host, _field,
+                _region == null ? null : _region.DefaultLocations, _marker);
         }
 
-        /// <summary>
-        /// Fills the map with the interpolated wind-speed field, drawn as small
-        /// blocks with bilinear interpolation between grid points. At six pixels a
-        /// block the banding is invisible at normal window sizes and the repaint
-        /// stays fast.
-        /// </summary>
-        private void DrawSpeedField(DrawingContext context, Rect map)
-        {
-            const double Block = 6;
+        // ---- geometry --------------------------------------------------------
 
-            for (double y = map.Y; y < map.Bottom; y += Block)
-            {
-                for (double x = map.X; x < map.Right; x += Block)
-                {
-                    double column = (x - map.X) / map.Width * (_field.Columns - 1);
-                    double row = (y - map.Y) / map.Height * (_field.Rows - 1);
-
-                    double speed = InterpolateSpeed(column, row);
-                    if (speed < 30d) continue;   // below this there is no jet to show
-
-                    // Opacity ramps with speed so the core stands out from the flow
-                    // around it instead of the whole map reading as solid colour.
-                    byte alpha = (byte)Math.Min(210d, 40d + (speed - 30d) * 2.2d);
-
-                    context.DrawRectangle(AppTheme.Brush(AppTheme.JetSpeedColor(speed), alpha), null,
-                        new Rect(x, y, Math.Min(Block, map.Right - x), Math.Min(Block, map.Bottom - y)));
-                }
-            }
-        }
-
-        /// <summary>Bilinear sample of the speed grid at fractional grid coordinates.</summary>
-        private double InterpolateSpeed(double column, double row)
-        {
-            int c0 = (int)Math.Floor(column);
-            int r0 = (int)Math.Floor(row);
-
-            c0 = Math.Max(0, Math.Min(c0, _field.Columns - 1));
-            r0 = Math.Max(0, Math.Min(r0, _field.Rows - 1));
-
-            int c1 = Math.Min(c0 + 1, _field.Columns - 1);
-            int r1 = Math.Min(r0 + 1, _field.Rows - 1);
-
-            double fc = column - c0;
-            double fr = row - r0;
-
-            double top = SpeedAt(c0, r0) + (SpeedAt(c1, r0) - SpeedAt(c0, r0)) * fc;
-            double bottom = SpeedAt(c0, r1) + (SpeedAt(c1, r1) - SpeedAt(c0, r1)) * fc;
-            return top + (bottom - top) * fr;
-        }
-
-        private double SpeedAt(int column, int row)
-        {
-            JetStreamPoint point = _field.At(column, row);
-            return point == null ? 0d : point.SpeedKnots;
-        }
-
-        private void DrawGraticule(DrawingContext context, Rect map)
-        {
-            var pen = new Pen(AppTheme.Brush(AppTheme.TextColor, 46), 1,
-                new DashStyle(new double[] { 1, 3 }, 0));
-
-            for (double latitude = Math.Ceiling(_field.SouthLatitude / 10d) * 10d;
-                 latitude <= _field.NorthLatitude; latitude += 10d)
-            {
-                double y = LatitudeToY(latitude, map);
-                context.DrawLine(pen, new Point(map.X, y), new Point(map.Right, y));
-
-                AppTheme.DrawLineText(context, latitude.ToString("0") + "°N", AppTheme.Regular,
-                    AppTheme.SizeSmall, AppTheme.TextFaint, new Rect(map.X + 4, y - 16, 52, 15));
-            }
-
-            for (double longitude = Math.Ceiling(_field.WestLongitude / 10d) * 10d;
-                 longitude <= _field.EastLongitude; longitude += 10d)
-            {
-                double x = LongitudeToX(longitude, map);
-                context.DrawLine(pen, new Point(x, map.Y), new Point(x, map.Bottom));
-
-                AppTheme.DrawLineText(context, Math.Abs(longitude).ToString("0") + "°W", AppTheme.Regular,
-                    AppTheme.SizeSmall, AppTheme.TextFaint, new Rect(x + 4, map.Bottom - 18, 54, 15));
-            }
-
-            context.DrawRectangle(null, AppTheme.BorderPen, map);
-        }
-
-        /// <summary>
-        /// One arrow per grid point, pointing the way the wind is blowing.
-        /// Meteorological direction is the bearing the wind comes *from*, so the
-        /// arrow is drawn along direction + 180 degrees.
-        /// </summary>
-        private void DrawWindArrows(DrawingContext context, Rect map)
-        {
-            for (int row = 0; row < _field.Rows; row++)
-            {
-                for (int column = 0; column < _field.Columns; column++)
-                {
-                    JetStreamPoint point = _field.At(column, row);
-                    if (point == null || point.SpeedKnots < 25d) continue;
-
-                    double x = LongitudeToX(point.Longitude, map);
-                    double y = LatitudeToY(point.Latitude, map);
-                    if (!map.Contains(new Point(x, y))) continue;
-
-                    double heading = (point.DirectionDegrees + 180d) * Math.PI / 180d;
-
-                    // Length carries speed as well as the colour does, which helps
-                    // when the map is printed or read by someone colour-blind.
-                    double length = Math.Min(26d, 8d + point.SpeedKnots / 7d);
-                    double dx = Math.Sin(heading) * length;
-                    double dy = -Math.Cos(heading) * length;
-
-                    var from = new Point(x - dx / 2, y - dy / 2);
-                    var to = new Point(x + dx / 2, y + dy / 2);
-
-                    var pen = new Pen(
-                        point.IsJetCore ? AppTheme.White : AppTheme.Brush(AppTheme.TextColor, 200),
-                        point.IsJetCore ? 2 : 1.3,
-                        lineCap: PenLineCap.Round);
-
-                    context.DrawLine(pen, from, to);
-                    DrawArrowHead(context, pen, from, to);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Avalonia pens have no arrow caps, so the head is two short strokes back
-        /// along the shaft at +/- 25 degrees.
-        /// </summary>
-        private static void DrawArrowHead(DrawingContext context, IPen pen, Point from, Point to)
-        {
-            double angle = Math.Atan2(to.Y - from.Y, to.X - from.X);
-            const double HeadLength = 5.5;
-            const double Spread = 25 * Math.PI / 180;
-
-            context.DrawLine(pen, to, new Point(
-                to.X - HeadLength * Math.Cos(angle - Spread),
-                to.Y - HeadLength * Math.Sin(angle - Spread)));
-
-            context.DrawLine(pen, to, new Point(
-                to.X - HeadLength * Math.Cos(angle + Spread),
-                to.Y - HeadLength * Math.Sin(angle + Spread)));
-        }
-
-        /// <summary>Marks known cities so the map has geographic anchors.</summary>
-        private void DrawPlaces(DrawingContext context, Rect map)
-        {
-            var places = new List<GeoLocation>();
-            if (_region != null) places.AddRange(_region.DefaultLocations);
-            if (_marker != null) places.Add(_marker);
-
-            foreach (GeoLocation place in places)
-            {
-                if (place.Latitude < _field.SouthLatitude || place.Latitude > _field.NorthLatitude) continue;
-                if (place.Longitude < _field.WestLongitude || place.Longitude > _field.EastLongitude) continue;
-
-                double x = LongitudeToX(place.Longitude, map);
-                double y = LatitudeToY(place.Latitude, map);
-
-                bool isSelected = _marker != null
-                                  && Math.Abs(place.Latitude - _marker.Latitude) < 0.001
-                                  && Math.Abs(place.Longitude - _marker.Longitude) < 0.001;
-
-                double radius = isSelected ? 5 : 3;
-
-                context.DrawEllipse(
-                    isSelected ? AppTheme.Accent : AppTheme.Brush(Colors.White, 190),
-                    new Pen(AppTheme.Brush(Colors.Black, 190)),
-                    new Point(x, y), radius, radius);
-
-                if (isSelected || places.Count <= 12)
-                {
-                    AppTheme.DrawLineText(context, place.Name,
-                        isSelected ? AppTheme.Bold : AppTheme.Regular, AppTheme.SizeSmall,
-                        isSelected ? AppTheme.Accent : AppTheme.Brush(Colors.White, 210),
-                        new Rect(x + 8, y - 9, 120, 18));
-                }
-            }
-        }
-
-        /// <summary>Calls out where the fastest wind in the field is.</summary>
-        private void DrawJetCoreCallout(DrawingContext context, Rect map)
-        {
-            JetStreamPoint core = _field.StrongestPoint;
-            if (core == null || core.SpeedKnots < 70d) return;
-
-            double x = LongitudeToX(core.Longitude, map);
-            double y = LatitudeToY(core.Latitude, map);
-
-            context.DrawEllipse(null, new Pen(AppTheme.White, 2), new Point(x, y), 11, 11);
-
-            var label = new Rect(x + 15, y - 10, 78, 20);
-            context.DrawRectangle(AppTheme.Brush(Colors.Black, 190), null, label, 4, 4);
-
-            AppTheme.DrawLineText(context, Math.Round(core.SpeedKnots).ToString("0") + " kt",
-                AppTheme.Bold, AppTheme.SizeSmall, AppTheme.White, label, TextAlignment.Center);
-        }
-
-        private static void DrawLegend(DrawingContext context, Rect host)
-        {
-            int[] thresholds = { 50, 70, 90, 110, 130, 150 };
-
-            double y = host.Bottom - LegendHeight;
-            double x = host.X + 14;
-
-            AppTheme.DrawLineText(context, "WIND SPEED", AppTheme.Regular, AppTheme.SizeSmall, AppTheme.TextFaint,
-                new Rect(x, y, 86, 18));
-            x += 90;
-
-            foreach (int threshold in thresholds)
-            {
-                context.DrawRectangle(AppTheme.Brush(AppTheme.JetSpeedColor(threshold)), null,
-                    new Rect(x, y + 5, 20, 10), 2, 2);
-
-                AppTheme.DrawLineText(context, threshold.ToString(CultureInfo.InvariantCulture),
-                    AppTheme.Regular, AppTheme.SizeSmall, AppTheme.TextMuted, new Rect(x + 24, y, 32, 18));
-                x += 56;
-            }
-
-            AppTheme.DrawLineText(context, "kt  ·  jet core is 70 kt and above", AppTheme.Regular,
-                AppTheme.SizeSmall, AppTheme.TextFaint, new Rect(x, y, 240, 18));
-        }
-
-        // ---- projection ------------------------------------------------------
-
+        /// <summary>The card the map is drawn inside, below the toolbar and status line.</summary>
         private Rect HostBounds()
         {
             double top = ToolbarHeight + StatusHeight + 8;
             return new Rect(Gutter, top, Math.Max(10, W - Gutter * 2), Math.Max(10, H - top - Gutter));
-        }
-
-        /// <summary>
-        /// The largest rectangle inside the card that keeps the box's aspect ratio,
-        /// with longitude compressed by cos(centre latitude) so the region is not
-        /// stretched sideways. That matters most for Alaska, where a degree of
-        /// longitude is under a third of a degree of latitude.
-        /// </summary>
-        private Rect MapBounds(Rect host)
-        {
-            Rect area = host.Deflate(new Thickness(14, 14, 14, LegendHeight + 6));
-            if (area.Width <= 0 || area.Height <= 0) return default(Rect);
-
-            double centreLatitude = (_field.NorthLatitude + _field.SouthLatitude) / 2d;
-            double spanLatitude = Math.Max(0.1, _field.NorthLatitude - _field.SouthLatitude);
-            double spanLongitude = Math.Max(0.1, _field.EastLongitude - _field.WestLongitude)
-                                   * Math.Cos(centreLatitude * Math.PI / 180d);
-
-            double aspect = spanLongitude / spanLatitude;
-
-            double width = area.Width;
-            double height = width / aspect;
-
-            if (height > area.Height)
-            {
-                height = area.Height;
-                width = height * aspect;
-            }
-
-            return new Rect(
-                area.X + (area.Width - width) / 2,
-                area.Y + (area.Height - height) / 2,
-                Math.Max(1, width), Math.Max(1, height));
-        }
-
-        private double LongitudeToX(double longitude, Rect map)
-        {
-            double fraction = (longitude - _field.WestLongitude)
-                              / (_field.EastLongitude - _field.WestLongitude);
-            return map.X + fraction * map.Width;
-        }
-
-        private double LatitudeToY(double latitude, Rect map)
-        {
-            double fraction = (_field.NorthLatitude - latitude)
-                              / (_field.NorthLatitude - _field.SouthLatitude);
-            return map.Y + fraction * map.Height;
         }
 
         private static string FormatCoordinate(JetStreamPoint point)

@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <!-- Android 5.0. Avalonia's floor, and low enough that this is not the
+         thing limiting who can install the app. -->
+    <SupportedOSPlatformVersion>21</SupportedOSPlatformVersion>
+    <RootNamespace>WeatherApp</RootNamespace>
+    <AssemblyName>WindowsWeather</AssemblyName>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+
+    <ApplicationId>com.github.barnminecraft01.windowsweather</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
+
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+    <!-- Endpoints.LoadOverrides reflects over static fields to apply
+         endpoints.json, and the linker would strip them. -->
+    <AndroidLinkMode>None</AndroidLinkMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Android" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The same engine the desktop and WinForms heads compile. Nothing in it
+         is platform-specific; see WeatherApp.WinForms.csproj for why this is a
+         source glob rather than an assembly reference. -->
+    <Compile Include="..\WeatherApp.Core\**\*.cs">
+      <Link>Core\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Compile>
+
+    <Compile Include="..\WeatherApp.AvaloniaShared\**\*.cs">
+      <Link>Shared\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Compile>
+  </ItemGroup>
+
+</Project>

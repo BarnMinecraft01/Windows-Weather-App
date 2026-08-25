@@ -17,7 +17,7 @@ import struct
 import zlib
 import sys
 
-SIZE = 512
+SIZE = 512          # overridden by the second command-line argument
 CORNER = 0.18          # corner radius as a fraction of the icon size
 
 BACKGROUND = (0x12, 0x16, 0x1C)
@@ -124,5 +124,12 @@ def write_png(path, rows):
 
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else "weather.png"
+
+    # Android wants a smaller launcher icon than a desktop entry does, so the
+    # size is a parameter rather than a second copy of this script.
+    if len(sys.argv) > 2:
+        globals()["SIZE"] = int(sys.argv[2])
+
+
     write_png(target, build_pixels())
-    print("wrote " + target)
+    print("wrote %s (%dx%d)" % (target, SIZE, SIZE))

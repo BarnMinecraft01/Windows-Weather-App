@@ -37,6 +37,16 @@ namespace WeatherApp.Platform
                 return Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), FolderName);
 #else
+                // Android has no user home in the desktop sense; the app's private
+                // files directory is the only place it may write unconditionally,
+                // and LocalApplicationData maps to exactly that.
+                if (OperatingSystem.IsAndroid())
+                {
+                    return Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        FolderName);
+                }
+
                 string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
                 if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(

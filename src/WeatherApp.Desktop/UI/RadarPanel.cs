@@ -388,7 +388,7 @@ namespace WeatherApp.UI
                 ? "https://radar.weather.gov/station/" + entry.Code.ToLowerInvariant() + "/standard"
                 : RadarService.BrowserUrl(entry.BrowserSlug);
 
-            if (!Widgets.OpenUrl(url)) SetStatus("Could not open a browser. The address is " + url, true);
+            if (!Widgets.OpenUrl(url, this)) SetStatus("Could not open a browser. The address is " + url, true);
         }
 
         private void CancelPending()
