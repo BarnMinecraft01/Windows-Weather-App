@@ -1,0 +1,31 @@
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Windows-hosted because the app targets .NET Framework 4.6.2 and WinForms,
+    # neither of which builds on the Linux runners.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build (Release)
+        run: msbuild WindowsWeatherApp.sln /p:Configuration=Release /p:Platform="Any CPU" /verbosity:minimal /warnaserror:CS0168,CS0219
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: WindowsWeather
+          path: |
+            src/WeatherApp/bin/Release/WindowsWeather.exe
+            src/WeatherApp/bin/Release/WindowsWeather.exe.config
+          if-no-files-found: error
