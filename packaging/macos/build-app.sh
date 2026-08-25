@@ -26,7 +26,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PROJECT="$PROJECT_ROOT/src/WeatherApp.Mac/WeatherApp.Mac.csproj"
+PROJECT="$PROJECT_ROOT/src/WeatherApp.Desktop/WeatherApp.Desktop.csproj"
 PLIST="$PROJECT_ROOT/packaging/macos/Info.plist"
 OUT="$PROJECT_ROOT/artifacts/macos"
 
@@ -93,6 +93,32 @@ fi
 
 cp "$PLIST" "$APP/Contents/Info.plist"
 chmod +x "$APP/Contents/MacOS/$BINARY_NAME"
+
+# ---- icon (best effort) -----------------------------------------------------
+# sips and iconutil ship with macOS, so no third-party tooling is needed. A
+# missing icon costs a generic document icon in Finder, not a broken build.
+echo "==> Building icon"
+ICONSET="$OUT/AppIcon.iconset"
+rm -rf "$ICONSET"
+mkdir -p "$ICONSET"
+
+if python3 "$PROJECT_ROOT/packaging/icon/make-icon.py" "$OUT/icon-512.png" >/dev/null 2>&1; then
+  for size in 16 32 64 128 256 512; do
+    sips -z $size $size "$OUT/icon-512.png" --out "$ICONSET/icon_${size}x${size}.png" >/dev/null 2>&1 || true
+
+    double=$((size * 2))
+    sips -z $double $double "$OUT/icon-512.png" \
+      --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null 2>&1 || true
+  done
+
+  if iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns" 2>/dev/null; then
+    echo "    AppIcon.icns"
+  else
+    echo "    iconutil unavailable; bundle will use the generic icon."
+  fi
+else
+  echo "    icon generation failed; bundle will use the generic icon."
+fi
 
 # Marks the directory as a bundle for older Finder versions.
 printf 'APPL????' > "$APP/Contents/PkgInfo"

@@ -31,6 +31,35 @@ jobs:
             src/WeatherApp.WinForms/bin/Release/WindowsWeather.exe.config
           if-no-files-found: error
 
+  linux:
+    name: Linux (.NET 10, Avalonia)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build (Release)
+        run: dotnet build src/WeatherApp.Desktop/WeatherApp.Desktop.csproj -c Release -warnaserror
+
+      - name: Package tarball and AppImage
+        run: ./packaging/linux/build-linux.sh
+
+      - name: Upload Linux build
+        uses: actions/upload-artifact@v4
+        with:
+          # The tarball is the guaranteed output; the AppImage is best-effort
+          # because appimagetool needs FUSE, so it is not required to be present.
+          name: WindowsWeather-linux
+          path: |
+            artifacts/linux/*.tar.gz
+            artifacts/linux/*.AppImage
+          if-no-files-found: error
+
   macos:
     name: macOS (.NET 10, Avalonia)
     runs-on: macos-latest
@@ -44,7 +73,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Build (Release)
-        run: dotnet build src/WeatherApp.Mac/WeatherApp.Mac.csproj -c Release -warnaserror
+        run: dotnet build src/WeatherApp.Desktop/WeatherApp.Desktop.csproj -c Release -warnaserror
 
       - name: Package .app bundle
         run: ./packaging/macos/build-app.sh

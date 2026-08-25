@@ -45,7 +45,7 @@ dropped .NET Framework — so the platform-specific part is the UI and nothing e
 ```
 src/WeatherApp.Core/       Json, Net, Configuration, Models, Services, Platform
 src/WeatherApp.WinForms/   .NET Framework 4.6.2 + WinForms   → Windows 7–11
-src/WeatherApp.Mac/        .NET 10 + Avalonia 12             → macOS (and Linux)
+src/WeatherApp.Desktop/        .NET 10 + Avalonia 12             → macOS (and Linux)
 packaging/macos/           Info.plist and the .app build script
 ```
 
@@ -121,7 +121,7 @@ output is a single `WindowsWeather.exe` in `src/WeatherApp.WinForms/bin/Release/
 ### macOS head
 
 ```bash
-dotnet build src/WeatherApp.Mac/WeatherApp.Mac.csproj -c Release
+dotnet build src/WeatherApp.Desktop/WeatherApp.Desktop.csproj -c Release
 
 # or build a runnable .app bundle:
 ./packaging/macos/build-app.sh                 # host architecture

@@ -17,6 +17,10 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
 
+    <!-- Written by build-app.sh; a missing icon is not fatal. -->
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+
     <key>CFBundleShortVersionString</key>
     <string>1.0.0</string>
 
