@@ -336,17 +336,25 @@ namespace WeatherApp.UI
             if (!anyInRegion && region.DefaultLocations.Count > 0)
             {
                 _suppressEvents = true;
+
+                // Remember where the first addition lands so the view switches to a
+                // place that is actually in the region the user just picked.
+                int firstAdded = -1;
+
                 foreach (GeoLocation location in region.DefaultLocations.Take(4))
                 {
-                    if (!_settings.SavedLocations.Any(l =>
-                            Math.Abs(l.Latitude - location.Latitude) < 0.001 &&
-                            Math.Abs(l.Longitude - location.Longitude) < 0.001))
-                    {
-                        _settings.SavedLocations.Add(location);
-                    }
+                    bool alreadySaved = _settings.SavedLocations.Any(l =>
+                        Math.Abs(l.Latitude - location.Latitude) < 0.001 &&
+                        Math.Abs(l.Longitude - location.Longitude) < 0.001);
+
+                    if (alreadySaved) continue;
+
+                    if (firstAdded < 0) firstAdded = _settings.SavedLocations.Count;
+                    _settings.SavedLocations.Add(location);
                 }
 
-                _settings.ActiveLocationIndex = _settings.SavedLocations.Count - region.DefaultLocations.Take(4).Count();
+                if (firstAdded >= 0) _settings.ActiveLocationIndex = firstAdded;
+
                 RebuildLocationList();
                 _suppressEvents = false;
             }

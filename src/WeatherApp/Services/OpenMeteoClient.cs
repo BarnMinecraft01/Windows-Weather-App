@@ -251,8 +251,10 @@ namespace WeatherApp.Services
             string variables = "wind_speed_" + level + ",wind_direction_" + level
                                + ",geopotential_height_" + level + ",temperature_" + level;
 
-            // Enough days to cover the longest offset the UI offers.
-            int forecastDays = Math.Max(1, (int)Math.Ceiling((hoursAhead + 1) / 24d));
+            // The hourly axis starts at 00:00 UTC today, not at the current hour, so a
+            // "+48h" request can reach past hour 72 late in the UTC day. Ask for a
+            // whole extra day rather than compute the boundary exactly.
+            int forecastDays = Math.Min(7, 2 + hoursAhead / 24);
 
             const int ChunkSize = 25;
             for (int offset = 0; offset < coordinates.Count; offset += ChunkSize)
