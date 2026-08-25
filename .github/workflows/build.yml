@@ -7,9 +7,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    # Windows-hosted because the app targets .NET Framework 4.6.2 and WinForms,
-    # neither of which builds on the Linux runners.
+  windows:
+    name: Windows (.NET Framework 4.6.2, WinForms)
+    # Windows-hosted because this head targets .NET Framework and WinForms,
+    # neither of which builds on a Linux runner.
     runs-on: windows-latest
 
     steps:
@@ -24,8 +25,35 @@ jobs:
       - name: Upload build output
         uses: actions/upload-artifact@v4
         with:
-          name: WindowsWeather
+          name: WindowsWeather-win
           path: |
             src/WeatherApp.WinForms/bin/Release/WindowsWeather.exe
             src/WeatherApp.WinForms/bin/Release/WindowsWeather.exe.config
+          if-no-files-found: error
+
+  macos:
+    name: macOS (.NET 10, Avalonia)
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build (Release)
+        run: dotnet build src/WeatherApp.Mac/WeatherApp.Mac.csproj -c Release -warnaserror
+
+      - name: Package .app bundle
+        run: ./packaging/macos/build-app.sh
+
+      - name: Upload app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          # Uploading the bundle as an artifact zips it, which loses the
+          # executable bit; the download instructions in README cover restoring it.
+          name: WindowsWeather-macos
+          path: artifacts/macos/Windows Weather.app
           if-no-files-found: error

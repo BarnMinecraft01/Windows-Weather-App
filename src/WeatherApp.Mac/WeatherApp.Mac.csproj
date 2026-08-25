@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- net10.0 is the current LTS. Avalonia 12 dropped .NET Framework and
+         .NET Standard entirely, so this head can never be the one that serves
+         Windows 7; that stays with the WinForms build. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>WeatherApp</RootNamespace>
+    <AssemblyName>WindowsWeather</AssemblyName>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest />
+    <!-- Trimming is off: the app reflects over Endpoints' static fields to apply
+         endpoints.json overrides, and a trimmer would strip them. -->
+    <PublishTrimmed>false</PublishTrimmed>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Same shared core the WinForms head compiles, included by source rather
+         than referenced as an assembly. See WeatherApp.WinForms.csproj for why. -->
+    <Compile Include="..\WeatherApp.Core\**\*.cs">
+      <Link>Core\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Compile>
+  </ItemGroup>
+
+</Project>
