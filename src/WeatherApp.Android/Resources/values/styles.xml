@@ -2,15 +2,16 @@
 <resources>
   <!-- Must descend from Theme.AppCompat. Avalonia's AvaloniaMainActivity is an
        androidx AppCompatActivity, and AppCompatDelegate refuses to build its
-       content view under any other theme -- it throws
-       "You need to use a Theme.AppCompat theme (or descendant) with this
-       activity" from setContentView, which happens after the activity is on
-       screen, so the app appears to open and then close. This inherited
-       android:Theme.Material.NoActionBar before, which is a platform theme, not
-       an AppCompat one.
+       content view under any other theme: it throws "You need to use a
+       Theme.AppCompat theme (or descendant) with this activity" from
+       setContentView, which happens after the activity is already on screen, so
+       the app appears to open and then close. This inherited
+       android:Theme.Material.NoActionBar before, which is a platform theme
+       rather than an AppCompat one.
 
-       The AppCompat name has no android: prefix: it comes from the appcompat
-       library that Avalonia.Android already brings in, not from the platform.
+       The AppCompat name carries no android: prefix, because it comes from the
+       appcompat library that Avalonia.Android already brings in rather than
+       from the platform.
 
        NoActionBar because Avalonia draws the entire surface itself, and the dark
        window background stops a white flash before the first Avalonia frame. -->
