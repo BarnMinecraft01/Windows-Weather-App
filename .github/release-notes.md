@@ -6,7 +6,7 @@ Ready-to-run builds for **Windows, macOS, Linux and Android**. No compiler neede
 
 That is why these are `0.x` versions and not `1.0.0`.
 
-**0.1.1 fixes an Android launch crash** found on a Pixel Fold running Android 17: every button was constructing a mouse cursor, which a touch platform has no factory for, and the font resolver was asking Android for DejaVu Sans — a family that only exists on Linux. Android builds now also capture unhandled exceptions to `crash.log` in the app's files directory and show the reason on screen instead of closing silently.
+**0.1.2 is a diagnostic build for an Android launch crash** on a Pixel Fold running Android 17. 0.1.1 fixed two real bugs (a mouse cursor being constructed on a touch platform, and a Linux-only font being requested) but the app still closed on launch, and it closed without showing the error screen those builds added — which means the failure happens before any of the app's own code can catch it. Two changes follow from that: Release builds are no longer trimmed (the .NET Android default strips code reached only by reflection, which is how Avalonia resolves its theming), and the app now records how far each launch got. **If it still closes, open it a second time**: instead of vanishing it will show a report screen, built from plain Android views so it works even when nothing else does, with **Share** and **Copy** buttons. That report is what makes the cause findable.
 
 If something looks wrong, the most likely culprits are the SPC hail integration (it discovers ArcGIS layer ids by name at runtime) and any NOAA product path that has moved. Every upstream URL is editable in `endpoints.json` next to your settings, so a moved path is a text edit rather than a rebuild.
 

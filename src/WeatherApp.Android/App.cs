@@ -25,6 +25,7 @@ namespace WeatherApp.Droid
     {
         public override void Initialize()
         {
+            CrashReporter.Breadcrumb("App.Initialize");
             Styles.Add(new FluentTheme());
 
             // The screens paint a fixed dark palette, so the few stock controls are
@@ -35,6 +36,7 @@ namespace WeatherApp.Droid
 
         public override void OnFrameworkInitializationCompleted()
         {
+            CrashReporter.Breadcrumb("App.OnFrameworkInitializationCompleted");
             AppSettings settings = LoadSettings();
 
             // Avalonia 12 hands Android an IActivityApplicationLifetime with a
@@ -65,7 +67,14 @@ namespace WeatherApp.Droid
         {
             try
             {
-                return new PhoneShell(settings);
+                CrashReporter.Breadcrumb("building PhoneShell");
+                Control shell = new PhoneShell(settings);
+
+                // The launch is only a success once there is something to look at.
+                // Anything short of this leaves the record open, and the next
+                // launch reports it instead of failing silently again.
+                CrashReporter.CompleteBoot();
+                return shell;
             }
             catch (Exception ex)
             {

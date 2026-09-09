@@ -32,7 +32,24 @@ namespace WeatherApp.Droid
             // startup still leaves a readable reason behind rather than the app
             // silently returning to the launcher.
             CrashReporter.Install(this);
-            base.OnCreate();
+            CrashReporter.BeginBoot();
+            CrashReporter.Breadcrumb("AndroidApp.OnCreate entered");
+
+            try
+            {
+                base.OnCreate();
+                CrashReporter.Breadcrumb("Avalonia initialised");
+            }
+            catch (Exception ex)
+            {
+                // Letting this escape kills the process before any activity runs,
+                // which is the failure that shows as the app opening and closing
+                // with nothing on screen. Recording it and returning lets the
+                // launcher activity start and show what happened -- an app that
+                // can explain itself beats one that vanishes.
+                CrashReporter.Report("Avalonia initialisation", ex);
+                CrashReporter.Breadcrumb("Avalonia initialisation FAILED: " + ex.GetType().Name);
+            }
         }
 
         protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)

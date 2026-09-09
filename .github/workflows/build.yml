@@ -133,6 +133,52 @@ jobs:
           -c Release
           -p:AndroidKeyStore=false
 
+      # The [Application] and [Activity] attributes are compiled into a manifest
+      # by the build, and a mistake there does not fail the build -- it produces
+      # an APK that installs and then closes the moment it is opened, because
+      # nothing is registered to start. Reading the manifest back out of the
+      # finished APK is the only way to be sure of what the phone will see, so
+      # the two registrations the app cannot run without are asserted here.
+      - name: Verify the manifest registers the app
+        run: |
+          set -euo pipefail
+
+          APK=$(find src/WeatherApp.Android/bin/Release -name '*-Signed.apk' | sort | head -1)
+          if [ -z "$APK" ]; then
+            APK=$(find src/WeatherApp.Android/bin/Release -name '*.apk' | sort | head -1)
+          fi
+          if [ -z "$APK" ]; then
+            echo "::error::No APK was produced." >&2
+            exit 1
+          fi
+
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          AAPT2=$(find "$SDK/build-tools" -name aapt2 -type f 2>/dev/null | sort -V | tail -1)
+          if [ -z "$AAPT2" ]; then
+            echo "::error::aapt2 not found; cannot read the merged manifest." >&2
+            exit 1
+          fi
+
+          "$AAPT2" dump xmltree --file AndroidManifest.xml "$APK" > manifest.txt
+          echo '--- merged AndroidManifest.xml ---'
+          cat manifest.txt
+
+          # Avalonia is started from AndroidApp. If the application element does
+          # not name it, Android uses its own Application, nothing initialises,
+          # and every launch fails identically.
+          if ! grep -q 'crc[0-9a-f]*\.AndroidApp\|md5[0-9a-f]*\.AndroidApp\|AndroidApp' manifest.txt; then
+            echo "::error::The manifest does not register AndroidApp as the application class." >&2
+            exit 1
+          fi
+
+          # Something has to be launchable, or the app has no icon to tap.
+          if ! grep -q 'android.intent.category.LAUNCHER' manifest.txt; then
+            echo "::error::The manifest declares no launcher activity." >&2
+            exit 1
+          fi
+
+          echo 'Manifest registers an application class and a launcher activity.'
+
       # An unsigned APK installs on nothing, and the failure mode is silent: the
       # build succeeds and the file is simply rejected by the phone. Verifying
       # here turns that into a red build instead of a bad download.

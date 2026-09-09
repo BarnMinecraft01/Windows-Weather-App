@@ -15,8 +15,8 @@
     <LangVersion>latest</LangVersion>
 
     <ApplicationId>com.github.barnminecraft01.windowsweather</ApplicationId>
-    <ApplicationVersion>2</ApplicationVersion>
-    <ApplicationDisplayVersion>0.1.1</ApplicationDisplayVersion>
+    <ApplicationVersion>3</ApplicationVersion>
+    <ApplicationDisplayVersion>0.1.2</ApplicationDisplayVersion>
 
     <AndroidPackageFormat>apk</AndroidPackageFormat>
 
@@ -26,7 +26,13 @@
          them out roughly halves the download. -->
     <RuntimeIdentifiers>android-arm64;android-arm</RuntimeIdentifiers>
     <!-- Endpoints.LoadOverrides reflects over static fields to apply
-         endpoints.json, and the linker would strip them. -->
+         endpoints.json, and Avalonia resolves much of its theming by type name,
+         so neither survives a trimmer that can only see direct calls.
+         PublishTrimmed is the property that actually governs this: a Release
+         .NET for Android build turns it on with TrimMode=partial by default.
+         AndroidLinkMode is kept for the older toolchain but is a legacy Xamarin
+         property, so setting it alone left the app being trimmed. -->
+    <PublishTrimmed>false</PublishTrimmed>
     <AndroidLinkMode>None</AndroidLinkMode>
   </PropertyGroup>
 
