@@ -161,6 +161,15 @@ jobs:
 
           "$AAPT2" dump xmltree --file AndroidManifest.xml "$APK" > manifest.txt
 
+          # Printed whichever way the assertions go: when one fails, this is the
+          # difference between knowing the manifest is wrong and knowing only
+          # that the check could not read it. aapt2 writes attribute names as
+          # the full namespace URI, so the patterns below match ":name(" rather
+          # than an "android:" prefix.
+          echo '--- manifest skeleton ---'
+          grep -E '^ *(E: |.*:name\()' manifest.txt | head -60
+          echo '--- end ---'
+
           # The application element's android:name is the class Android
           # instantiates, and Avalonia is started from ours. Read that one
           # attribute rather than searching the whole file: a name that appears
@@ -168,19 +177,22 @@ jobs:
           APPLICATION=$(awk '
             /^ *E: application \(/ { inside = 1; next }
             inside && /^ *E: / { inside = 0 }
-            inside && /android:name\(/ {
+            inside && /A: .*:name\(/ {
               if (match($0, /="[^"]*"/)) {
                 print substr($0, RSTART + 2, RLENGTH - 3)
                 exit
               }
             }' manifest.txt)
 
+          # Tracked per activity: the application element carries a name too, and
+          # picking that one up would report it as the launcher.
           LAUNCHER=$(awk '
-            /^ *E: activity \(/ { name = "" }
-            /^ *A: android:name\(/ && name == "" {
+            /^ *E: activity \(/ { in_activity = 1; name = ""; next }
+            /^ *E: (application|activity-alias|service|receiver|provider) \(/ { in_activity = 0 }
+            in_activity && name == "" && /A: .*:name\(/ {
               if (match($0, /="[^"]*"/)) name = substr($0, RSTART + 2, RLENGTH - 3)
             }
-            /android.intent.category.LAUNCHER/ { print name; exit }' manifest.txt)
+            in_activity && /android.intent.category.LAUNCHER/ { print name; exit }' manifest.txt)
 
           echo "Application class: ${APPLICATION:-(none)}"
           echo "Launcher activity: ${LAUNCHER:-(none)}"
