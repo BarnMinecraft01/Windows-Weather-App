@@ -34,6 +34,12 @@
          property, so setting it alone left the app being trimmed. -->
     <PublishTrimmed>false</PublishTrimmed>
     <AndroidLinkMode>None</AndroidLinkMode>
+    <!-- Release also turns on ahead-of-time compilation, and the SDK refuses to
+         AOT-compile an untrimmed build (XA1030), so the two go together. Losing
+         it costs some startup time and adds to the download; both are worth
+         paying to find out whether the app runs at all. -->
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
   </PropertyGroup>
 
   <ItemGroup>
