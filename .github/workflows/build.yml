@@ -160,24 +160,55 @@ jobs:
           fi
 
           "$AAPT2" dump xmltree --file AndroidManifest.xml "$APK" > manifest.txt
-          echo '--- merged AndroidManifest.xml ---'
-          cat manifest.txt
 
-          # Avalonia is started from AndroidApp. If the application element does
-          # not name it, Android uses its own Application, nothing initialises,
-          # and every launch fails identically.
-          if ! grep -q 'crc[0-9a-f]*\.AndroidApp\|md5[0-9a-f]*\.AndroidApp\|AndroidApp' manifest.txt; then
-            echo "::error::The manifest does not register AndroidApp as the application class." >&2
-            exit 1
-          fi
+          # The application element's android:name is the class Android
+          # instantiates, and Avalonia is started from ours. Read that one
+          # attribute rather than searching the whole file: a name that appears
+          # somewhere in the manifest proves nothing about what will be run.
+          APPLICATION=$(awk '
+            /^ *E: application \(/ { inside = 1; next }
+            inside && /^ *E: / { inside = 0 }
+            inside && /android:name\(/ {
+              if (match($0, /="[^"]*"/)) {
+                print substr($0, RSTART + 2, RLENGTH - 3)
+                exit
+              }
+            }' manifest.txt)
 
-          # Something has to be launchable, or the app has no icon to tap.
-          if ! grep -q 'android.intent.category.LAUNCHER' manifest.txt; then
-            echo "::error::The manifest declares no launcher activity." >&2
-            exit 1
-          fi
+          LAUNCHER=$(awk '
+            /^ *E: activity \(/ { name = "" }
+            /^ *A: android:name\(/ && name == "" {
+              if (match($0, /="[^"]*"/)) name = substr($0, RSTART + 2, RLENGTH - 3)
+            }
+            /android.intent.category.LAUNCHER/ { print name; exit }' manifest.txt)
 
-          echo 'Manifest registers an application class and a launcher activity.'
+          echo "Application class: ${APPLICATION:-(none)}"
+          echo "Launcher activity: ${LAUNCHER:-(none)}"
+
+          # Without this, Android uses its own Application, Avalonia is never
+          # initialised, and every launch fails identically and silently.
+          case "$APPLICATION" in
+            *.AndroidApp) ;;
+            *)
+              echo "::error::The application element names '${APPLICATION:-nothing}', not AndroidApp." >&2
+              exit 1
+              ;;
+          esac
+
+          case "$LAUNCHER" in
+            *.LauncherActivity) ;;
+            *)
+              echo "::error::The launcher activity is '${LAUNCHER:-none}', not LauncherActivity." >&2
+              exit 1
+              ;;
+          esac
+
+          {
+            echo '### Android manifest'
+            echo ''
+            echo "- Application class: \`${APPLICATION}\`"
+            echo "- Launcher activity: \`${LAUNCHER}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # An unsigned APK installs on nothing, and the failure mode is silent: the
       # build succeeds and the file is simply rejected by the phone. Verifying
