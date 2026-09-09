@@ -50,6 +50,19 @@ namespace WeatherApp.Net
         private static readonly HttpClient Client;
 
         /// <summary>
+        /// A second client that asks for no compression at all, used to retry a host
+        /// whose compressed response this platform could not inflate.
+        /// </summary>
+        private static readonly HttpClient PlainClient;
+
+        /// <summary>
+        /// Hosts that have already failed to decompress once. Requests to them skip
+        /// straight to the uncompressed client rather than failing again first.
+        /// </summary>
+        private static readonly HashSet<string> PlainHosts =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
         /// Sent on every request. The NWS API asks callers to identify themselves and
         /// throttles anonymous-looking traffic, so this is not merely decorative.
         /// </summary>
@@ -62,7 +75,12 @@ namespace WeatherApp.Net
             var handler = new HttpClientHandler();
             try
             {
-                handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                // gzip only, deliberately. "deflate" is ambiguous on the wire -- some
+                // servers send it wrapped in a zlib header and some raw -- and which
+                // of the two a given platform's inflater expects varies. Asking only
+                // for gzip removes the ambiguity, and it is the encoding every one of
+                // these services supports anyway.
+                handler.AutomaticDecompression = DecompressionMethods.GZip;
             }
             catch (NotSupportedException)
             {
@@ -73,6 +91,20 @@ namespace WeatherApp.Net
 
             Client = new HttpClient(handler);
             Client.Timeout = TimeSpan.FromSeconds(30);
+
+            var plainHandler = new HttpClientHandler();
+            try
+            {
+                plainHandler.AutomaticDecompression = DecompressionMethods.None;
+            }
+            catch (NotSupportedException)
+            {
+            }
+            plainHandler.AllowAutoRedirect = true;
+            plainHandler.UseProxy = true;
+
+            PlainClient = new HttpClient(plainHandler);
+            PlainClient.Timeout = TimeSpan.FromSeconds(30);
         }
 
         /// <summary>
@@ -172,6 +204,12 @@ namespace WeatherApp.Net
             }
             catch (Exception ex)
             {
+                // Recorded before the stale-cache fallback hides it: a request that
+                // keeps failing while an old copy carries the screen is exactly the
+                // failure nobody would otherwise notice.
+                RequestLog.Record(DescribeHost(url), url,
+                    cached != null ? "failed, served a stale copy" : "failed", ex);
+
                 // stale-if-error: an old reading is more useful than a blank panel.
                 if (cached != null) return cached.Payload;
 
@@ -218,9 +256,47 @@ namespace WeatherApp.Net
             throw last ?? new WeatherServiceException("Request to " + DescribeHost(url) + " failed.");
         }
 
+        /// <summary>
+        /// One request, retried without compression if the compressed reply could not
+        /// be inflated.
+        ///
+        /// That retry is not theoretical: on Android, api.open-meteo.com and
+        /// geocoding-api.open-meteo.com both failed with "the archive entry was
+        /// compressed using an unsupported compression method" while api.weather.gov
+        /// over the same connection was fine. The bytes arrive; the platform simply
+        /// cannot expand them. Asking that host for plain text afterwards costs some
+        /// bandwidth and always works, which beats showing an empty forecast.
+        /// </summary>
         private static async Task<byte[]> FetchOnceAsync(
             string url, string accept, CancellationToken cancellationToken)
         {
+            string host = DescribeHost(url);
+
+            if (PrefersPlain(host))
+            {
+                return await SendAsync(PlainClient, url, accept, true, cancellationToken).ConfigureAwait(false);
+            }
+
+            try
+            {
+                return await SendAsync(Client, url, accept, false, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (IsDecompressionFailure(ex))
+            {
+                // Remembered, so the rest of this session's requests to the same host
+                // do not each pay for the same discovery.
+                RememberPlainHost(host);
+                RequestLog.Record(host, url, "compressed reply could not be inflated; retrying uncompressed", ex);
+
+                return await SendAsync(PlainClient, url, accept, true, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task<byte[]> SendAsync(
+            HttpClient client, string url, string accept, bool plain, CancellationToken cancellationToken)
+        {
+            var started = DateTime.UtcNow;
+
             using (var request = new HttpRequestMessage(HttpMethod.Get, url))
             {
                 request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
@@ -228,9 +304,14 @@ namespace WeatherApp.Net
                 {
                     request.Headers.TryAddWithoutValidation("Accept", accept);
                 }
+
+                // Stated outright on the plain client. Without it a server is free to
+                // compress anyway, which is the thing being avoided.
+                if (plain) request.Headers.TryAddWithoutValidation("Accept-Encoding", "identity");
+
                 request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
 
-                using (HttpResponseMessage response = await Client
+                using (HttpResponseMessage response = await client
                            .SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
                            .ConfigureAwait(false))
                 {
@@ -243,12 +324,60 @@ namespace WeatherApp.Net
 
                         // 429 and 5xx are worth another attempt; 4xx generally is not.
                         if (code == 429 || code >= 500) failure.Data["transient"] = true;
+
+                        RequestLog.Record(DescribeHost(url), url,
+                            "HTTP " + code.ToString(CultureInfo.InvariantCulture), null);
                         throw failure;
                     }
 
-                    return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                    byte[] payload = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+
+                    RequestLog.Record(DescribeHost(url), url,
+                        "HTTP 200, " + payload.Length.ToString(CultureInfo.InvariantCulture) + " bytes"
+                        + (plain ? ", uncompressed" : string.Empty)
+                        + ", " + ((int)(DateTime.UtcNow - started).TotalMilliseconds)
+                            .ToString(CultureInfo.InvariantCulture) + " ms",
+                        null);
+
+                    return payload;
                 }
             }
+        }
+
+        /// <summary>
+        /// Whether an exception is the response body failing to decompress rather than
+        /// the request failing to arrive.
+        ///
+        /// Matched on both type and message because the platforms disagree about which
+        /// exception carries it: it surfaces as InvalidDataException on some, wrapped in
+        /// an IOException or HttpRequestException on others.
+        /// </summary>
+        private static bool IsDecompressionFailure(Exception ex)
+        {
+            for (Exception current = ex; current != null; current = current.InnerException)
+            {
+                if (current is InvalidDataException) return true;
+
+                string message = current.Message;
+                if (string.IsNullOrEmpty(message)) continue;
+
+                if (message.IndexOf("compress", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                if (message.IndexOf("gzip", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                if (message.IndexOf("deflate", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                if (message.IndexOf("archive entry", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            }
+
+            return false;
+        }
+
+        private static bool PrefersPlain(string host)
+        {
+            lock (CacheLock) { return PlainHosts.Contains(host); }
+        }
+
+        private static void RememberPlainHost(string host)
+        {
+            lock (CacheLock) { PlainHosts.Add(host); }
         }
 
         private static CacheEntry ReadCache(string url)

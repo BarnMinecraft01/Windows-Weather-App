@@ -46,6 +46,12 @@ namespace WeatherApp.UI
         private readonly Button _locationButton;
         private readonly Button _refreshButton;
         private readonly TextBlock _statusText;
+
+        /// <summary>
+        /// The warnings behind the one truncated line in the status bar, kept so the
+        /// diagnostics report can show all of them in full.
+        /// </summary>
+        private readonly List<string> _lastWarnings = new List<string>();
         private readonly Panel _contentHost;
         private readonly Border _sheet;
         private readonly List<Button> _navButtons = new List<Button>();
@@ -125,6 +131,15 @@ namespace WeatherApp.UI
             DockPanel.SetDock(navBar, Dock.Bottom);
 
             _statusText.Margin = new Thickness(14, 2, 14, 4);
+
+            // The status bar has room for one line, and a failure usually needs a
+            // paragraph. Tapping it opens the whole thing, with the request log, on a
+            // screen that can be shared.
+            //
+            // The transparent background is load-bearing: a TextBlock with no brush
+            // at all is not hit-tested, so the tap would land on whatever is behind.
+            _statusText.Background = Brushes.Transparent;
+            _statusText.PointerPressed += (s, e) => ShowDiagnostics();
 
             main.Children.Add(topBar);
             main.Children.Add(_statusText);
@@ -493,8 +508,13 @@ namespace WeatherApp.UI
                 AnnounceNewWarnings(snapshot);
                 _settings.Save();
 
+                _lastWarnings.Clear();
+                _lastWarnings.AddRange(snapshot.Warnings);
+
                 _statusText.Text = "Updated " + snapshot.RetrievedAt.ToString("h:mm tt")
-                    + (snapshot.Warnings.Count > 0 ? "  ·  " + snapshot.Warnings[0] : string.Empty);
+                    + (snapshot.Warnings.Count > 0
+                        ? "  ·  " + snapshot.Warnings[0] + "  (tap for details)"
+                        : string.Empty);
                 _statusText.Foreground = snapshot.Warnings.Count > 0
                     ? AppTheme.Brush(AppTheme.WarningColor)
                     : AppTheme.TextFaint;
@@ -504,12 +524,43 @@ namespace WeatherApp.UI
             }
             catch (WeatherServiceException ex)
             {
-                _statusText.Text = ex.Message;
+                _lastWarnings.Clear();
+                _lastWarnings.Add(ex.Message);
+
+                _statusText.Text = ex.Message + "  (tap for details)";
                 _statusText.Foreground = AppTheme.Brush(AppTheme.DangerColor);
             }
             finally
             {
                 _refreshButton.IsEnabled = true;
+            }
+        }
+
+        /// <summary>
+        /// Opens the full diagnostics report.
+        ///
+        /// Shown through the same plain-Android screen the crash reporter uses rather
+        /// than as an Avalonia page, because that screen already knows how to scroll
+        /// a wall of text and hand it to Share -- and because a report about the app
+        /// misbehaving should depend on as little of the app as possible.
+        /// </summary>
+        private void ShowDiagnostics()
+        {
+            try
+            {
+                string report = RequestLog.Report(_lastWarnings);
+
+                Android.Content.Context context = Android.App.Application.Context;
+                var intent = new Android.Content.Intent(context, typeof(WeatherApp.Droid.CrashActivity));
+                intent.PutExtra(WeatherApp.Droid.CrashActivity.ReportExtra, report);
+                intent.PutExtra(WeatherApp.Droid.CrashActivity.TitleExtra, "Diagnostics");
+                intent.SetFlags(Android.Content.ActivityFlags.NewTask);
+                context.StartActivity(intent);
+            }
+            catch (Exception)
+            {
+                // A diagnostics screen that crashes the app it is diagnosing would be
+                // worse than no diagnostics screen.
             }
         }
 

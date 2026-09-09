@@ -24,6 +24,7 @@ namespace WeatherApp.Droid
     public class CrashActivity : Activity
     {
         public const string ReportExtra = "report";
+        public const string TitleExtra = "title";
 
         private string _report;
 
@@ -33,19 +34,34 @@ namespace WeatherApp.Droid
 
             _report = Intent?.GetStringExtra(ReportExtra) ?? "No report was supplied.";
 
+            // The same screen serves two purposes: explaining a launch that failed, and
+            // showing what the weather services actually returned. Only the wording at
+            // the top differs.
+            bool isDiagnostics = Intent?.GetStringExtra(TitleExtra) == "Diagnostics";
+
             var root = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
             root.SetBackgroundColor(Color.Rgb(0x14, 0x18, 0x20));
 
-            root.AddView(Heading("Windows Weather did not start"));
-            root.AddView(Heading(
-                "The details below are what the last launch managed to record. "
-                + "Share or copy them -- they are what makes the cause findable."));
+            if (isDiagnostics)
+            {
+                root.AddView(Heading("What the weather services returned"));
+                root.AddView(Heading(
+                    "Every request this session made, and every warning in full rather "
+                    + "than the one cut-off line the status bar has room for."));
+            }
+            else
+            {
+                root.AddView(Heading("Windows Weather did not start"));
+                root.AddView(Heading(
+                    "The details below are what the last launch managed to record. "
+                    + "Share or copy them: they are what makes the cause findable."));
+            }
 
             var buttons = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Horizontal };
             buttons.SetPadding(24, 8, 24, 8);
             buttons.AddView(MakeButton("Share", (s, e) => Share()));
             buttons.AddView(MakeButton("Copy", (s, e) => Copy()));
-            buttons.AddView(MakeButton("Start anyway", (s, e) => StartAnyway()));
+            if (!isDiagnostics) buttons.AddView(MakeButton("Start anyway", (s, e) => StartAnyway()));
             root.AddView(buttons);
 
             var body = new TextView(this)
@@ -90,7 +106,10 @@ namespace WeatherApp.Droid
             {
                 var intent = new Intent(Intent.ActionSend);
                 intent.SetType("text/plain");
-                intent.PutExtra(Intent.ExtraSubject, "Windows Weather launch failure");
+                intent.PutExtra(Intent.ExtraSubject,
+                    _report != null && _report.Contains("diagnostics")
+                        ? "Windows Weather diagnostics"
+                        : "Windows Weather launch failure");
                 intent.PutExtra(Intent.ExtraText, _report);
                 StartActivity(Intent.CreateChooser(intent, "Share the report"));
             }
