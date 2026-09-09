@@ -3,6 +3,7 @@ name: Build
 on:
   push:
     branches: ["**"]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -52,8 +53,8 @@ jobs:
       - name: Upload Linux build
         uses: actions/upload-artifact@v4
         with:
-          # The tarball is the guaranteed output; the AppImage is best-effort
-          # because appimagetool needs FUSE, so it is not required to be present.
+          # The tarball is the guaranteed output and preserves the executable bit
+          # internally; the AppImage is best-effort because appimagetool needs FUSE.
           name: WindowsWeather-linux
           path: |
             artifacts/linux/*.tar.gz
@@ -78,13 +79,19 @@ jobs:
       - name: Package .app bundle
         run: ./packaging/macos/build-app.sh
 
+      - name: Archive the bundle
+        # ditto, not zip: uploading a .app as a directory loses the executable bit
+        # when Actions re-zips it, and the app then will not launch. Archiving it
+        # here means the permissions live inside a file Actions treats as opaque.
+        run: |
+          cd artifacts/macos
+          ditto -c -k --keepParent "Windows Weather.app" "WindowsWeather-macos-arm64.zip"
+
       - name: Upload app bundle
         uses: actions/upload-artifact@v4
         with:
-          # Uploading the bundle as an artifact zips it, which loses the
-          # executable bit; the download instructions in README cover restoring it.
           name: WindowsWeather-macos
-          path: artifacts/macos/Windows Weather.app
+          path: artifacts/macos/WindowsWeather-macos-arm64.zip
           if-no-files-found: error
 
   android:
@@ -108,17 +115,97 @@ jobs:
       - name: Install the Android workload
         run: dotnet workload install android
 
+      # publish, not build: for Android it is publish that packages and signs the
+      # APK. AndroidKeyStore=false signs with the Android debug key, which is what
+      # makes the result installable by sideloading without this repository having
+      # to hold a private signing key. It is not a Play Store identity.
+      #
       # No -warnaserror here, unlike the other Avalonia heads: the Android SDK
-      # targets emit warnings of their own that have nothing to do with this
-      # code, and failing the build on them would be noise rather than signal.
-      - name: Build (Release)
-        run: dotnet build src/WeatherApp.Android/WeatherApp.Android.csproj -c Release
+      # targets emit warnings of their own that have nothing to do with this code.
+      - name: Publish and sign (Release)
+        run: >
+          dotnet publish src/WeatherApp.Android/WeatherApp.Android.csproj
+          -c Release
+          -p:AndroidKeyStore=false
+
+      # An unsigned APK installs on nothing, and the failure mode is silent: the
+      # build succeeds and the file is simply rejected by the phone. Verifying
+      # here turns that into a red build instead of a bad download.
+      - name: Verify the APK is signed
+        run: |
+          set -euo pipefail
+
+          APK=$(find src/WeatherApp.Android/bin/Release -name '*-Signed.apk' | sort | head -1)
+          if [ -z "$APK" ]; then
+            APK=$(find src/WeatherApp.Android/bin/Release -name '*.apk' | sort | head -1)
+          fi
+          if [ -z "$APK" ]; then
+            echo "::error::No APK was produced." >&2
+            exit 1
+          fi
+          echo "APK: $APK ($(du -h "$APK" | cut -f1))"
+
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          APKSIGNER=$(find "$SDK/build-tools" -name apksigner -type f 2>/dev/null | sort -V | tail -1)
+          if [ -z "$APKSIGNER" ]; then
+            echo "::error::apksigner not found; cannot prove the APK is signed." >&2
+            exit 1
+          fi
+
+          "$APKSIGNER" verify --print-certs "$APK"
+          cp "$APK" WindowsWeather-android.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          # Release builds are unsigned without a keystore, so an APK may not be
-          # produced at all; the compile is what this job is really verifying.
           name: WindowsWeather-android
-          path: src/WeatherApp.Android/bin/Release/net10.0-android/*.apk
-          if-no-files-found: warn
+          path: WindowsWeather-android.apk
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: [windows, linux, macos, android]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      # Required to create the release and upload its assets.
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Assemble release assets
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p assets
+
+          # Windows ships as a zip because it is two files, and permissions are
+          # not meaningful there anyway.
+          (cd dist/WindowsWeather-win && zip -q -r "$GITHUB_WORKSPACE/assets/WindowsWeather-$VERSION-windows.zip" .)
+
+          cp dist/WindowsWeather-macos/*.zip     "assets/WindowsWeather-$VERSION-macos-arm64.zip"
+          cp dist/WindowsWeather-linux/*.tar.gz  "assets/WindowsWeather-$VERSION-linux-x64.tar.gz"
+          cp dist/WindowsWeather-android/*.apk   "assets/WindowsWeather-$VERSION-android.apk"
+
+          # Best-effort, exactly as in the Linux job.
+          cp dist/WindowsWeather-linux/*.AppImage "assets/WindowsWeather-$VERSION-linux-x86_64.AppImage" 2>/dev/null || true
+
+          ls -lh assets
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          gh release create "$GITHUB_REF_NAME" assets/* \
+            --title "Windows Weather $VERSION" \
+            --notes-file .github/release-notes.md \
+            --verify-tag

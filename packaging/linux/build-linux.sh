@@ -84,7 +84,7 @@ APPRUN
 chmod +x "$APPDIR/AppRun"
 
 # ---- tarball (always) -------------------------------------------------------
-TARBALL="$OUT/$DISPLAY_NAME-$ARCH.tar.gz"
+TARBALL="$OUT/$BINARY_NAME-$ARCH.tar.gz"
 echo "==> Building tarball"
 tar -czf "$TARBALL" -C "$OUT" "$ARCH"
 echo "    $TARBALL"
@@ -115,8 +115,8 @@ fi
 
 if [[ -x "$TOOL" ]]; then
   # --appimage-extract-and-run avoids needing FUSE, which containers rarely have.
-  if ARCH="$TOOL_ARCH" "$TOOL" --appimage-extract-and-run "$APPDIR" "$OUT/$DISPLAY_NAME.AppImage"; then
-    echo "    $OUT/$DISPLAY_NAME.AppImage"
+  if ARCH="$TOOL_ARCH" "$TOOL" --appimage-extract-and-run "$APPDIR" "$OUT/$BINARY_NAME-$TOOL_ARCH.AppImage"; then
+    echo "    $OUT/$BINARY_NAME-$TOOL_ARCH.AppImage"
   else
     echo "    appimagetool failed; the tarball above is still usable."
   fi

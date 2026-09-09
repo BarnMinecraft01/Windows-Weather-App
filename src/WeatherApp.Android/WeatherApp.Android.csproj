@@ -16,9 +16,15 @@
 
     <ApplicationId>com.github.barnminecraft01.windowsweather</ApplicationId>
     <ApplicationVersion>1</ApplicationVersion>
-    <ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
+    <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
 
     <AndroidPackageFormat>apk</AndroidPackageFormat>
+
+    <!-- One copy of the runtime ships per ABI, and with linking disabled that is
+         roughly 35 MB each. arm64 and arm cover every physical Android device at
+         API 23 and above; the x86 pair only matters for emulators, so leaving
+         them out roughly halves the download. -->
+    <RuntimeIdentifiers>android-arm64;android-arm</RuntimeIdentifiers>
     <!-- Endpoints.LoadOverrides reflects over static fields to apply
          endpoints.json, and the linker would strip them. -->
     <AndroidLinkMode>None</AndroidLinkMode>
