@@ -222,6 +222,28 @@ jobs:
             echo "- Launcher activity: \`${LAUNCHER}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Avalonia's AvaloniaMainActivity is an androidx AppCompatActivity, and
+      # AppCompatDelegate throws from setContentView under any theme that is not
+      # a Theme.AppCompat descendant. That throw happens after the activity is on
+      # screen, so the app opens and closes with nothing to see -- it cost three
+      # releases to find. Nothing in the build catches it, so this does.
+      - name: Verify the activity theme descends from AppCompat
+        run: |
+          set -euo pipefail
+
+          STYLES=src/WeatherApp.Android/Resources/values/styles.xml
+          PARENT=$(sed -n 's/.*<style name="AppTheme" parent="\([^"]*\)".*/\1/p' "$STYLES")
+
+          echo "AppTheme parent: ${PARENT:-(not found)}"
+
+          case "$PARENT" in
+            Theme.AppCompat*) ;;
+            *)
+              echo "::error file=$STYLES::AppTheme inherits '${PARENT:-nothing}'. Avalonia's activity requires a Theme.AppCompat descendant, and any other theme crashes it at startup." >&2
+              exit 1
+              ;;
+          esac
+
       # An unsigned APK installs on nothing, and the failure mode is silent: the
       # build succeeds and the file is simply rejected by the phone. Verifying
       # here turns that into a red build instead of a bad download.

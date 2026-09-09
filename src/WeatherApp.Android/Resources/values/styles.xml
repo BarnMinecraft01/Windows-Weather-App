@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <!-- Avalonia draws the entire surface itself, so the activity wants no action
-       bar and no title. The dark window background stops a white flash between
-       the activity starting and the first Avalonia frame. -->
-  <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
+  <!-- Must descend from Theme.AppCompat. Avalonia's AvaloniaMainActivity is an
+       androidx AppCompatActivity, and AppCompatDelegate refuses to build its
+       content view under any other theme -- it throws
+       "You need to use a Theme.AppCompat theme (or descendant) with this
+       activity" from setContentView, which happens after the activity is on
+       screen, so the app appears to open and then close. This inherited
+       android:Theme.Material.NoActionBar before, which is a platform theme, not
+       an AppCompat one.
+
+       The AppCompat name has no android: prefix: it comes from the appcompat
+       library that Avalonia.Android already brings in, not from the platform.
+
+       NoActionBar because Avalonia draws the entire surface itself, and the dark
+       window background stops a white flash before the first Avalonia frame. -->
+  <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
     <item name="android:windowBackground">@color/window_background</item>
     <item name="android:colorBackground">@color/window_background</item>
   </style>
