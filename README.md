@@ -85,6 +85,8 @@ rendered by the same code on both.
 
 ## Installing
 
+**Download a ready-built package from [Releases](https://github.com/BarnMinecraft01/Windows-Weather-App/releases).** Nothing needs compiling. Release assets are permanent and need no GitHub login; the per-commit builds under Actions are for testing and expire after 90 days.
+
 ### Windows
 
 | Windows version | What you need |
@@ -104,14 +106,15 @@ The bundle declares a minimum of 13.0 so older systems can at least try; that is
 untested. Both Apple silicon and Intel are supported.
 
 The published `.app` is **self-contained** — it carries its own .NET runtime, so
-nothing needs installing first.
+nothing needs installing first. The release archive is made with `ditto`, so the
+executable bit survives the download; unzip and drag it to Applications.
 
-Because the CI build is only *ad-hoc signed*, Gatekeeper will refuse it on a
+Because the build is only *ad-hoc signed*, Gatekeeper will refuse it on a
 machine other than the one that built it. To run it anyway, either right-click
 the app and choose **Open**, or clear the quarantine flag:
 
 ```bash
-xattr -dr com.apple.quarantine "Windows Weather.app"
+xattr -dr com.apple.quarantine "/Applications/Windows Weather.app"
 ```
 
 > The app is named "Windows Weather" on macOS too, inherited from the Windows
@@ -129,9 +132,19 @@ minimal container may not.
 
 ### Android
 
-Install the APK from the build artifacts. It needs Android 6.0 or later and asks
-for one permission: internet access. There is deliberately no location
+Sideload the APK. It needs Android 6.0 or later, ships arm64 and 32-bit ARM, and
+asks for one permission: internet access. There is deliberately no location
 permission — you choose your places explicitly rather than being geolocated.
+
+The APK is **signed with the Android debug key**, which is what makes it
+installable without this repository holding a private signing key. CI verifies
+the signature with `apksigner`, so an unsigned APK fails the build rather than
+becoming a download that silently will not install. Two consequences:
+
+- it cannot be published to the Play Store, and
+- CI generates a fresh debug key per run, so each release carries a different
+  signature — **uninstall an older version before installing a newer one.**
+  Storing a real keystore in repository secrets would fix that permanently.
 
 ### Where settings live
 
