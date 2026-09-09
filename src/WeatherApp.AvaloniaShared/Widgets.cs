@@ -1,6 +1,7 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 
@@ -46,8 +47,38 @@ namespace WeatherApp.UI
                 FontSize = AppTheme.SizeBody,
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
-                Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand)
+                Cursor = HandCursor
             };
+        }
+
+        /// <summary>
+        /// The pointer cursor for buttons, or null on a touch platform.
+        ///
+        /// Constructing a Cursor asks the platform for a cursor factory, and a
+        /// touch platform has no reason to register one -- there is no pointer to
+        /// style. Doing it anyway threw during the first construction of the phone
+        /// shell, before a single frame had been drawn, which presented as the app
+        /// launching and immediately closing.
+        ///
+        /// Resolved once and cached: it is the same object for every button, and a
+        /// failure here must never be able to take the UI down.
+        /// </summary>
+        private static readonly Cursor HandCursor = ResolveHandCursor();
+
+        private static Cursor ResolveHandCursor()
+        {
+            if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS()) return null;
+
+            try
+            {
+                return new Cursor(StandardCursorType.Hand);
+            }
+            catch (Exception)
+            {
+                // Any platform without a cursor factory; a null Cursor is valid and
+                // simply leaves the default.
+                return null;
+            }
         }
 
         public static TextBlock Caption(string text)

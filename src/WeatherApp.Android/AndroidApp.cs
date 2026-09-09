@@ -26,6 +26,15 @@ namespace WeatherApp.Droid
         {
         }
 
+        public override void OnCreate()
+        {
+            // Installed before anything else runs, so that a failure during Avalonia
+            // startup still leaves a readable reason behind rather than the app
+            // silently returning to the launcher.
+            CrashReporter.Install(this);
+            base.OnCreate();
+        }
+
         protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
         {
             return base.CustomizeAppBuilder(builder);

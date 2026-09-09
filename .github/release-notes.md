@@ -4,7 +4,9 @@ Ready-to-run builds for **Windows, macOS, Linux and Android**. No compiler neede
 
 **These builds have never made a live API call.** They were written and compiled in a sandbox with no network access to the weather services. All four platforms compile cleanly and package correctly, and every parser is written to degrade rather than throw on unexpected data — but no forecast has actually been fetched, and the endpoint shapes come from documentation rather than from observed responses. The first real run is the real test.
 
-That is why this is `0.1.0` and not `1.0.0`.
+That is why these are `0.x` versions and not `1.0.0`.
+
+**0.1.1 fixes an Android launch crash** found on a Pixel Fold running Android 17: every button was constructing a mouse cursor, which a touch platform has no factory for, and the font resolver was asking Android for DejaVu Sans — a family that only exists on Linux. Android builds now also capture unhandled exceptions to `crash.log` in the app's files directory and show the reason on screen instead of closing silently.
 
 If something looks wrong, the most likely culprits are the SPC hail integration (it discovers ArcGIS layer ids by name at runtime) and any NOAA product path that has moved. Every upstream URL is editable in `endpoints.json` next to your settings, so a moved path is a text edit rather than a rebuild.
 
@@ -12,7 +14,7 @@ If something looks wrong, the most likely culprits are the SPC hail integration 
 
 ## Windows 7 SP1 → 11
 
-**`WindowsWeather-0.1.0-windows.zip`**
+**`WindowsWeather-<version>-windows.zip`**
 
 Unzip and run `WindowsWeather.exe`. Keep `WindowsWeather.exe.config` beside it.
 
@@ -21,7 +23,7 @@ Unzip and run `WindowsWeather.exe`. Keep `WindowsWeather.exe.config` beside it.
 
 ## macOS 14 (Sonoma) or later, Apple silicon
 
-**`WindowsWeather-0.1.0-macos-arm64.zip`**
+**`WindowsWeather-<version>-macos-arm64.zip`**
 
 Unzip and drag `Windows Weather.app` to Applications. The bundle is only **ad-hoc signed**, so Gatekeeper will refuse it on first launch. Either right-click the app and choose **Open**, or clear the quarantine flag:
 
@@ -35,10 +37,10 @@ Intel Macs: build from source with `./packaging/macos/build-app.sh --arch osx-x6
 
 ## Linux x64
 
-**`WindowsWeather-0.1.0-linux-x64.tar.gz`** — self-contained, carries its own .NET runtime.
+**`WindowsWeather-<version>-linux-x64.tar.gz`** — self-contained, carries its own .NET runtime.
 
 ```bash
-tar xzf WindowsWeather-0.1.0-linux-x64.tar.gz
+tar xzf WindowsWeather-*-linux-x64.tar.gz
 ./linux-x64/WindowsWeather
 ```
 
@@ -46,7 +48,7 @@ Needs the usual desktop libraries (`libX11`, `libICE`, `libSM`, `fontconfig`). A
 
 ## Android 6.0 or later
 
-**`WindowsWeather-0.1.0-android.apk`** — arm64 and 32-bit ARM. Sideload it; you will need to allow installation from unknown sources.
+**`WindowsWeather-<version>-android.apk`** — arm64 and 32-bit ARM. Sideload it; you will need to allow installation from unknown sources.
 
 It asks for **one permission: internet access**. There is deliberately no location permission — you choose your places explicitly rather than being geolocated.
 

@@ -35,9 +35,7 @@ namespace WeatherApp.Droid
 
         public override void OnFrameworkInitializationCompleted()
         {
-            AppSettings settings = AppSettings.Load();
-            ApplyEndpointOverrides();
-            ApplyUserAgent(settings);
+            AppSettings settings = LoadSettings();
 
             // Avalonia 12 hands Android an IActivityApplicationLifetime with a
             // factory rather than a single view, because the platform may create
@@ -45,14 +43,53 @@ namespace WeatherApp.Droid
             // loaded once and captured, so every activity reads the same places.
             if (ApplicationLifetime is IActivityApplicationLifetime activityLifetime)
             {
-                activityLifetime.MainViewFactory = () => new PhoneShell(settings);
+                activityLifetime.MainViewFactory = () => CreateMainView(settings);
             }
             else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
             {
-                singleView.MainView = new PhoneShell(settings);
+                singleView.MainView = CreateMainView(settings);
             }
 
             base.OnFrameworkInitializationCompleted();
+        }
+
+        /// <summary>
+        /// Builds the phone shell, or a screen explaining why it could not be built.
+        ///
+        /// An exception escaping here takes the whole process down and the user sees
+        /// the app open and close with no explanation. Catching it turns the worst
+        /// class of bug -- a launch crash on a device nobody testing this owns --
+        /// into something a person can read and report.
+        /// </summary>
+        private static Control CreateMainView(AppSettings settings)
+        {
+            try
+            {
+                return new PhoneShell(settings);
+            }
+            catch (Exception ex)
+            {
+                CrashReporter.Report("PhoneShell constructor", ex);
+                return ErrorView.For(ex, "PhoneShell constructor");
+            }
+        }
+
+        private static AppSettings LoadSettings()
+        {
+            try
+            {
+                AppSettings settings = AppSettings.Load();
+                ApplyEndpointOverrides();
+                ApplyUserAgent(settings);
+                return settings;
+            }
+            catch (Exception ex)
+            {
+                // Settings live under a platform-resolved path; if that resolution
+                // fails the app should still start with defaults rather than die.
+                CrashReporter.Report("settings", ex);
+                return new AppSettings();
+            }
         }
 
         private static void ApplyEndpointOverrides()

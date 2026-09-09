@@ -67,19 +67,38 @@ namespace WeatherApp.UI
 
         private static FontFamily ResolveFont()
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            try
             {
-                // Helvetica Neue ships with every macOS release; the SF system font
-                // is not reliably addressable by name from a non-native toolkit.
-                return new FontFamily("Helvetica Neue");
-            }
+                // Android and iOS: ask for the platform default rather than naming a
+                // family. Android ships Roboto, not DejaVu Sans, and naming a family
+                // that is not installed leaves the metrics of every drawn label at
+                // the mercy of whatever the font manager substitutes.
+                if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
+                {
+                    return FontFamily.Default;
+                }
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    // Helvetica Neue ships with every macOS release; the SF system
+                    // font is not reliably addressable by name from a non-native toolkit.
+                    return new FontFamily("Helvetica Neue");
+                }
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    return new FontFamily("Segoe UI");
+                }
+
+                return new FontFamily("DejaVu Sans");
+            }
+            catch (Exception)
             {
-                return new FontFamily("Segoe UI");
+                // This runs in a static initialiser, where an exception becomes a
+                // TypeInitializationException on first use of the palette and takes
+                // the whole app down. No font is worth that.
+                return FontFamily.Default;
             }
-
-            return new FontFamily("DejaVu Sans");
         }
 
         public static readonly Typeface Regular = new Typeface(UiFont);
